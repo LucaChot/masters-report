@@ -1,0 +1,92 @@
+\chapter{Introduction}
+\label{firstcontentpage} % start page count here
+
+% This is the introduction where you should introduce your work. In
+% general the thing to aim for here is to describe a little bit of the
+% context for your work -- why did you do it (motivation), what was the
+% hoped-for outcome (aims) -- as well as trying to give a brief overview
+% of what you actually did.
+%
+% It's often useful to bring forward some ``highlights'' into this
+% chapter (e.g.\ some particularly compelling results, or a particularly
+% interesting finding).
+%
+% It's also traditional to give an outline of the rest of the document,
+% although without care this can appear formulaic and tedious. Your
+% call.
+
+Task scheduling is the process of organising, prioritising and allocating tasks
+or activities to resources. Task-scheduling is classifed as a NP-hard
+problem, thus requiring practical solutions to juggle the quality of scheduling
+decisions and the computation required to reach those decisions; resources spent
+determing allocations could instead be spent performing the tasks. This
+balancing act becomes ever more difficult with online schedulers
+\cite{pruhs2004online}: schedulers which receive tasks over time, and must
+schedule the tasks without any knowledge of the future. Without entirely knowing
+of all tasks to come, the scheduler can't guarantee optimal schedules. As a
+result, much research has been focused on finding efficient scheduling
+algorithms that guarantee solutions as close to optimal as possible.
+
+Task scheduling as a problem spans multiple domains and scale: OS-level CPU and
+IO schedulers (e.g. CFQ and FCFS), workflow orchestrators (Airflow), batch
+scheduling workloads in datacenters with thousands of machines. This project
+aims to tackle container orchestration within Kubernetes
+\cite{kube-page}, an extensible open-source platform for managing
+containerized workloads and services. Originally created by Google, and thus
+inspired by existing in-house systems \cite{Borg}, it became open-source in
+2014.
+
+Kubernetes employs \verb|kube-scheduler|, an In-Tree (default) scheduler that
+performs bin-packing, balanced allocation, topology-aware placement and
+preemption. In addition, \verb|kube-scheduler| implements the \textbf{Scheduling
+Framework}, providing extension points on top of which Out-of-Tree (replacement)
+schedulers can extend the scheduler behaviour.
+
+Talk about existing Kubernetes extension. Look at quality of Service plugins and
+how the current Kubernetes can't support that with bin-packing. Talk about
+rather than trying to blindly optimise for throughput, consider QoS. Look into
+how to combine in Serverless Compute / Lambda functions.
+
+- Why Pronto? Pronto is a federated, asynchronous, memory-limited algorithm for
+online task scheduling across large-scale networks of hundreds of workers
+- Each node executes scheduling decisions on whether to accept an incoming job
+independently based on the workload seen thus far. In addition, aggregating
+local models can contstruct a holistic view of the system
+
+Talk about how there has been few to no signal based kubernetes plugins. Thus,
+this project aimed to transport Pronto into the domain of Kubernetes.
+
+[Give an overview of the system structure: Central scheduler, remote scheduler
+and aggregate server]
+
+Talk about modifying the mathematics behind Pronto to get it to work in this
+domain. Talk about creating the allocation function, the need for a reserve
+function.
+
+To sum up, this project makes the following contributions:
+\begin{itemize}
+\item Implement a Pronto-based scheduler for Kubernetes\\
+    \begin{itemize}
+    \item Modify the subspace merge operations to take into account a different
+    vector space
+    \item Introduce signal processing techniques to calculate reserve amount
+    \item Implement TCP flow-control inspired technique to push throughput while
+    still ensuring QoS
+    \end{itemize}
+\item Demonstrate that this prototype can achieve competitive throughput with
+substantial reduction in per-pod completion time.
+\end{itemize}
+
+Potentially discuss the drawbacks.
+
+TODO: Check if there are any existing QoS schedulers that do not use predefined
+constraints. What is a use case in which one does not know exactly how much
+resources a task will take.
+
+In Chapter 2, we go over existing Kubernetes schedulers and why they do not
+achieve true online QoS (no prior knowledge of pod resource usage and
+requirement). In Chapter 3, we explain our proposed system: outlining the
+mathematics, the system design, allocation algorithm and optimisations. In
+Chapter 4, we evaluate the performance of Pronto against the standard
+\verb|kube-scheduler|, showing how it greatly reduces individual pod completion
+time. Lastly, we conclude our work and propose potential future directions.

@@ -1,0 +1,47 @@
+\chapter{Evaluation}
+%
+% For any practical projects, you should almost certainly have some kind
+% of evaluation, and it's often useful to separate this out into its own
+% chapter.
+
+\section{CPU-centric workloads}
+\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
+    \textbf{CPU-Centric Metric:} {\em In this section, I will compare Pronto
+    against the Kubernetes scheduler when running simple CPU-based pods. I
+    will measure job completion time, resource utilisation and individual pod
+    completion time distribution
+    }
+\end{tcolorbox}
+
+
+\section{Short and Long Workloads}
+\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
+    \textbf{Short and Long Workloads:} {\em In this section, I will compare
+    Pronto against the kubernetes scheduler when running pods of variable
+    run-times.
+    }
+\end{tcolorbox}
+
+\section{Multi-Resource Workloads}
+\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
+    \textbf{Multi-Resource Workloads:} {\em Finally, I will compare Pronto
+    against the kubernetes scheduelr when running pods .
+    }
+\end{tcolorbox}
+
+\section{Limitation}
+\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
+    \textbf{Limitations:} {\em In this section, I will go over the limitations
+    of the system. I will highlight how certain metrics like CPU-Utilisations
+    don't give any more information once saturated. I will also have to mention
+    how due to the sub-linear pod completion time, the kubernetes scheduler is
+    able to achieve higher job throughput by packing more pods into nodes.
+    }
+\end{tcolorbox}
+
+\section{Summary}
+\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
+    \textbf{Summary:} {\em In this section, I will summarise the results of my
+    evaluation section, highlighting key findings and reasoning.
+    }
+\end{tcolorbox}
