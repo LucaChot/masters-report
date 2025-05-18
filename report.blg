@@ -4,7 +4,6 @@ The top-level auxiliary file: report.aux
 A level-1 auxiliary file: chapters/00_abstract.aux
 A level-1 auxiliary file: chapters/01_introduction.aux
 A level-1 auxiliary file: chapters/02_background.aux
-A level-1 auxiliary file: chapters/03_related_work.aux
 A level-1 auxiliary file: chapters/04_design.aux
 A level-1 auxiliary file: chapters/05_evaluation.aux
 A level-1 auxiliary file: chapters/06_summary.aux
@@ -21,7 +20,7 @@ Warning--I didn't find a database entry for "intel-tas"
 Warning--I didn't find a database entry for "Koordinator"
 You've used 7 entries,
             2616 wiz_defined-function locations,
-            630 strings with 5882 characters,
+            629 strings with 5854 characters,
 and the built_in function-call counts, 2021 in all, are:
 = -- 192
 > -- 48

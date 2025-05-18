@@ -297,6 +297,8 @@ indicators.
 % bootstrappng and making more informed decisions.} \end{tcolorbox}
 
 \subsection{Overview}
+\label{pronto-overview}
+
 \begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{images/pronto}
@@ -352,6 +354,11 @@ compute the principle components and thus give better CPU-Ready predictions.
 These properties make Pronto an attractive technique that could be incorporated
 into scheduling within a Kubernetes cluster.
 
+\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Why Pronto:}
+{\em Pronto is promising due to two reasons, its federated nature which could
+allow nodes to exploit cluster-level information into their scheduling
+decisions, and its use of CPU-Ready, a standard metric to detect contention, but
+had not seen use in scheduling}  \end{tcolorbox}
 
 % \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Subspace Merging:}
 % {\em In this chapter I will describe how Pronto builds the indivdual models from
