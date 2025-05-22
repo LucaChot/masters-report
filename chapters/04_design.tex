@@ -4,11 +4,12 @@
 % the work you did in technical detail.
 \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
     \textbf{Design and Implementation:} {\em In this section, I will outline the
-    goals of my system. I will give a brief overview of the chapture structure,
+    goals of my system. I will give a brief overview of the chapter structure,
     summarising each core section and what I achieve.}
 \end{tcolorbox}
 
 \section{System Architecture}
+\label{sec:sys-arch}
 \begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{images/system.pdf}
@@ -21,16 +22,16 @@ The Pronto system consists of three core components (shown in figure
 \begin{itemize}
     \item Pronto DaemonSet: each node in the cluster will have a pronto pod
         running on it. This pod collects telemetry of the node performance and
-        generates its local model and a willigness signal. When the Pronto pod
+        generates its local model and a willingness signal. When the Pronto pod
         deems its local model outdated, it requests the latest aggregated global
         model from the Aggregation service. In addition, it periodically
-        generates and publishes its willigness signal to the Publish service.
+        generates and publishes its willingness signal to the Publish service.
     \item Scheduler: In Pronto, the scheduler is a \textbf{Scheduler Plugin}, implementing custom
         Filter, Score and Reserve functions. It also acts as the server of the
         Publish service, collecting the latest willingness scores of each node
         which it uses in its scheduling decisions.
     \item Aggregator: This deployment provides the Aggregation service. The
-        underlying \verb|pronto-agg| pod recieves local models from nodes and
+        underlying \verb|pronto-agg| pod receives local models from nodes and
         returns the latest aggregated global model.
 \end{itemize}
 
@@ -61,7 +62,7 @@ TODO: Look into why I did not use metrics like /proc/pressure/cpu. If they
 are not useful, I can use them as an argument to why I used resource
 utilisation and pivot to the idea of Pronto allows federated information to
 help scheduling decisions. If it works, can quickly implement Pronto and
-constrast
+contrast
 
 Secondly, a significant amount of resources are used starting up or deleting
 containers. This results in large spikes, as shown in figure
@@ -82,9 +83,9 @@ metrics are easily accessible and are used in a variety of industry-standard
 schedulers \cite{hadoop2016apache,sahasrabudhe_improved_2015}.
 
 Metric Server is a cluster-level add-on that provides near real-time CPU and
-memory usage metircs for Pods and Nodes. These metrics are easily accessed through
+memory usage metrics for Pods and Nodes. These metrics are easily accessed through
 the \verb|metrics.k8s.io/v1| APIService and are updated by the Metric Server scraper
-periodically (default every 15s). This method of metric collection is not
+periodically (default every 15 seconds). This method of metric collection is not
 suitable. Certain Pods may complete in less than 15 seconds and thus may not
 be detected by the signal. In addition, it would take $15 \times \text{batch size}$
 seconds between model updates (required to collect a single
@@ -94,8 +95,8 @@ representative and out-of-date model of "current" resource usage.
 Instead, I decided to have a pod running on each node, scraping
 metrics from files within the Linux \verb|/proc| directory.
 \verb|/proc/stat| reports the cumulative count of "jiffies" (typically
-hundredths of a second) each cpu spent in a specific mode \cite{proc_stat5}.
-I can then calculate cpu utilisation using:
+hundredths of a second) each CPU spent in a specific mode \cite{proc_stat5}.
+I can then calculate CPU utilisation using:
 \[ \text{CPU Usage\%} = 1 - \frac{\Delta(\text{idle} +
 \text{iowait}}{\Delta{\Sigma \text{all fields}}} \]
 \verb|/proc/meminfo| shows a snapshot of memory usage in kilobytes. The
@@ -107,18 +108,18 @@ Due to the higher refresh rate, we can poll these files more frequently
 making calls to the Metric Server APIService.
 
 
-\subsection{Denoising and Filtering Telemetry Data}
+\subsection{De-noising and Filtering Telemetry Data}
 While the modified version of Pronto that uses utilisation metrics won't perform
 peak detection, the signal will still be influenced by short-lived spikes. As
-mentioned in the earlier section, pod creation and deletion incurrs a visible
+mentioned in the earlier section, pod creation and deletion incurs a visible
 spike in resource usage. To prevent a non-representative local model of pod
-resource utilisation, as well as a noisy willigness signal, we needed to denoise
+resource utilisation, as well as a noisy willingness signal, we needed to de-noise
 the original metrics.
 \begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{images/blank.pdf}
     \caption{Resource utilisation telemetry of a node during the lifecycle of a
-    pod. It will have tags for when container events occured. In addition, I
+    pod. It will have tags for when container events occurred. In addition, I
     will demonstrate the effects of different filters when applied to the
     trace}
     \label{utilisation-noise}
@@ -146,7 +147,7 @@ time distribution
 To build its local model, each node periodically samples its telemetry data $y
 \in [0,1]^{2}$. Once it has $b$ samples, the resulting telemetry dataset $A \in
 [0,1]^{2 \times b}$ is merged into the previous subspace using iterative-SVD. We
-do not mean-center the telemetry data before applying SVD becuase we are
+do not mean-center the telemetry data before applying SVD because we are
 interested in the magnitude of resources rather than their changes. If we
 applied standard Pronto to utilisation metrics, the creation or deletion of a
 pod would result in a spike in resource usage. Even if the resource usage peaked
@@ -155,7 +156,7 @@ spike and create a false-positive rejection signal.
 
 The lack of mean-centering does violate the original assumptions of PCA. As
 previously mentioned in section \ref{pronto-overview}, the resulting $U$ and
-$\Sigma$ from the SVD of a mean-centered matrix correspond to the prinicple
+$\Sigma$ from the SVD of a mean-centered matrix correspond to the principle
 components of the original matrix and the variance within the original matrix in
 those directions. When we don't mean-center the telemetric data, the resulting
 matrices produced by SVD have a different meaning: the resulting $U$ and
@@ -178,6 +179,7 @@ vector directions. This results in a new "average" $\sigma$ which merges new
 telemetry into the local model with a forget factor of 0.5.
 
 \subsection{Aggregation}
+\label{sec:aggregation}
 
 The aggregation of local models to produce a global model also uses the same
 iterative-SVD as defined in section \ref{sec:local-model-construction}. In
@@ -198,32 +200,8 @@ which becomes a dominant factor when scaling to hundreds of nodes.
 
 TODO: Investigate the latency of throughput/limit of the aggregation server.
 TODO: Could have multiple aggregation server pods with a load balancer. Could
-then have these servers periodically share with eachother their latest models to
+then have these servers periodically share with each other their latest models to
 converge.
-
-\subsection{Rejection Signal}
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
-    \textbf{Rejection Signal:} {\em In this section I will discuess the possible
-    drawbacks to using a binary rejection signal. Pronto proposes a means
-    of predicting resource contention but does not include a means for
-    allocating based on the Rejection-Signal.
-
-    The Pronto paper assumes a system with no communication latency, which also
-    implicitly includes no pod start-up latency. This simplifies
-    scheduling decisions as the effects of prior decisions are immediately
-    visible in the next signal update (typically 100ms-1s later). However, in
-    Kubernetes, pod start-up can take from 1s-10s. If trying to schedule pods
-    with a high throughput (the Kubernetes scheduler can support a throughput of
-    $\approx$1000 pods per second \cite{qadeer_scaling_2022}), this can result in
-    hundreds of pods waiting to start-up on a node while it still advertises an
-    Accept-Signal.
-
-    In addition, a binary signal is difficult to use when trying to score nodes
-    and determine the optimal Pod placement. Therefore, I decided to extend
-    Pronto's output to a continous signal in $\Re$. By allowing nodes to
-    advertise their responsiveness along a finite scale, more fine-grained
-    comparisons can be made between nodes.}
-\end{tcolorbox}
 
 \section{Signal Generation \& Interpretation}
 
@@ -239,10 +217,10 @@ However, due to significant pod startup latency, the method can't be used in a
 real-world Kubernetes cluster is infeasible. When measuring pod startup in a
 100 node clusters, the more than 50\% of pods took more than $\approx$ 1 second
 to startup. In addition, when nodes were 100\% full, pod startup could reach up
-to 4 seconds. This latency is significant when Kubernentes schedulers can
+to 4 seconds. This latency is significant when Kubernetes schedulers can
 support a throughput of $\approx$1000 pods per second
 \cite{qadeer_scaling_2022}. Applying the same approach as used in the paper,
-could result in nodes advertisng a "willingness" to take on new pods while
+could result in nodes advertising a "willingness" to take on new pods while
 a large number of pods are in "flight" and once running will immediately
 overload the node. To prevent this runaway train type problem, I need to define
 a reservation function: a function that reserves an amount of the signal for a
@@ -290,7 +268,9 @@ utilisation.
     \label{eval-signal}
 \end{figure}
 
-\subsection{Reservation}
+\section{Reserve-Quantity Estimation}
+
+\subsection{Problem Statement}
 As the new proposed signal also used its current resource usage in the
 calculation, pods scheduled on a node would not impact the signal until they had
 started running. Thus, I needed a means of reserving the signal to prevent the
@@ -300,9 +280,11 @@ dynamically estimating the "signal cost" of assigning a pod to a node. In
 addition, I needed the method to be able to handle multiple pods being created
 and deleted at once.
 
+\subsection{Detecting Pod Events}
+
 There are numerous ways to detect the addition and removal of pods from a node.
 I investigated two: watching the Kubernetes API and watching the ContainerD
-events. The goals of the listners were as follows:
+events. The goals of the listeners were as follows:
 \begin{itemize}
     \item Detect the creation and deletion of pods to establish a pod count
     \item Provide warning for potential container-caused churn
@@ -320,112 +302,196 @@ estimations until the burst has passed.
     were triggered}
     \label{eval-listner}
 \end{figure}
+
 As shown in figure \ref{eval-listner}, the two-way latency from sending events
 to the \verb|kube-apiserver| before then detecting results in the Kubernetes API
-listner to miss the spikes caused by container events. Without a forewarn, nodes
+listener to miss the spikes caused by container events. Without a forewarn, nodes
 will include container event resource spikes into their resource predictions. On
-the otherhand, we can see that certain container events precede the spikes.
+the other hand, we can see that certain container events precede the spikes.
 While handling container events is more complex, it can alert the node of
 potential spikes and thus reduce the introduction of noise into our
 calculations.
 
+\subsection{Reserve Estimation Techniques}
+I also investigated several methods of estimating reservation costs:
+\begin{itemize}
+    \item Kalman Filter predicting reservation cost based on the function:
+        $\Delta \text{signal} = \Delta \text{no. of running pods} \times
+        \text{cost}$.
+    \item 2D Kalman Filter to predict the signal based on the function:
+        $\text{signal} = \text{capacity} + \text{per pod cost} \times \text{no.
+        of pods}$.
+    \item Two separate Kalman Filters predicting the equation: $\text{signal} =
+        \text{capacity} + \text{per pod cost} \times \text{no. of pods}$. One
+        filter predicts per-pod-cost while the other predicts capacity.
+\end{itemize}
 
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
-    \textbf{Framework Scheduler:} {\em In this section, I explain how I
-    calculated the reserve quantity. I needed a method to estimate the amount of
-    the signal to reserve when assigning a pod such that following scheduling
-    decisions can see the future impact of the pod without having to wait for
-    the signal to update / wait for the pod to start running.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/blank.pdf}
+    \caption{Figure displaying each methods per-pod-cost over an existing trace}
+    \label{eval-filter}
+\end{figure}
 
-    Explain how I used several methods:
-    \begin{itemize}
-        \item Fixed cost determined before initialisation. Does not adapt to
-            different workloads.
-        \item Kalman Filter to predict the change in signal given the number of
-            pods added. Difficult to perform when multiple pods are being added
-            and deleted at a time. Hard to extract the actual impact of a pod.
-        \item 2D Kalman Filter to predict the signal based on the underlying
-            equation: $\text{signal} = \text{capacity} + \text{per pod cost} \times \text{no. of pods}$.
-            This method was relatively accurate, but
-            would result in oscillations as the learned covariance between
-            capcity and per-pod-cost resulted in fluctuations. In addition,
-            trying to increase reactivity to changes in the signal, resulted in
-            this fluctuations becoming extreme.
-        \item 2 separate 1D Kalman Filters, one predicting the per-pod-cost
-            while the other predicts the capacity. This method worked the best.
-            By separating the variables, I was able to prevent the oscillations
-            in the previous method.
-    \end{itemize}
-    }
-\end{tcolorbox}
+The $\Delta$-based Kalman filter fails to accurately estimate the per-pod-cost
+once a node achieves full utilisation. When adding new pods to already saturated
+nodes, the change in the signal is very small (can be 0 if the node is already
+saturated). This results in a per-pod-cost that is far too low and would result
+in too many pods being added to a node by the scheduler.
 
-\section{System Design}
-\subsection{Overview}
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
-    \textbf{Overview:} {\em In this section, I give a brief overview of the
-    Pronto system. I outline the individual remote schedulers which reside on
-    each node and collect resource usage metrics and generate the acceptance
-    signal.
+The 2D Kalman filter fairs slightly better as it ensures that the per-pod-cost
+does not decrease to far. However, to ensure faster convergence, we used a
+Kalman filter with large constants in the $Q$ matrix. This then resulted in
+large oscillations as the filter attempts to correct any error by modifying both
+the capacity and cost variables.
 
-    In addition, outline the Aggregation Service, with a central server and the
-    remote schedulers which act as clients. The remote schedulers send their
-    latest local model and the aggregate server responds with the latest
-    aggregate model. To reduce latency, the aggregate model services each
-    aggregation request by first enqueuing the local model to be aggregated and
-    immediately sending a response with the latest version of the global model.
-    This system trades consistency for latency, which is important when scaling
-    to hundreds of nodes.
+Finally, I decided to use two separate Kalman filters; each filter learns its
+separate variable. By splitting the filter into two, we can prevent non-zero
+covariance entries in the $P$ matrix which cause the oscillations seen in the 2D
+Kalman filter. This filter gave the most stable results while still being able
+to converge quickly.
 
-    TODO: Investigate the latency of throughput/limit of the aggregation server.
+TODO: Maybe also talk about the dynamic convergence.
 
-    Finally, give a brief overview of the central scheduler. Explain how it is a
-    Framework Scheduler and thus replaces the Filter and Score functions}
-\end{tcolorbox}
+\subsection{Integrating into Signal}
 
-\subsection{Framework Scheduler}
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
-    \textbf{Framework Scheduler:} {\em In this section, I explain design of the central
-    scheduler. I will give the reasons for why I decided to use a Framework
-    Scheduler: use of efficient data structures, extensibility allows me to
-    encode the new Filter and Score behaviour.
+There are several methods to integrating the reserve cost into the signal to be
+sent to the central scheduler. The first method involves sending the signal and
+the reserve cost as separate values. On pod bind, we reserve the latest pod cost
+from the signal, and only relinquish the reserved amount once the central
+scheduler \verb|kube-apiserver| listener detects the pod is no longer Pending.
+This method requires the central scheduler to keep track of both the pods on
+each node and the pod-cost when the pod was bound.
 
-    Briefly explain the Filter, Score and Reserve semantics.
-    }
-\end{tcolorbox}
-\subsection{Reserve Function}
-\subsection{Optimisations}
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
-    \textbf{Optimisations:} {\em In this section I explain the optimisation I
-    implemented to improve scheduler throughput. I will include a figure of node
-    utilisation when using the standard system, showing how extra capacity
-    remains do to error between the true per-pod-cost and the estimated value.
+I instead chose to integrate the reserve quantity directly into the signal: each
+node calculates its available capacity in terms of no. of pods using two equations:
+\[ \text{avail. capacity from signal} = \frac{\text{signal}}{\text{per-pod-cost}} \\
+   \text{avail. capacity from no. of pods} = \frac{\text{capacity}}{\text{per-pod-cost}} -
+   \text{no. of pods} \]
 
-    I also show the relation of pod-completion time to number of pods running on
-    a node, alongside the signal. I will argue there are downsides to using CPU
-    Utilisation. That once a CPU is fully utilised (no "jiffies" are spent in the
-    idle state), the addition of more pods can't increase the CPU Utilisation
-    and thus the signal does not change. In addition, the relation between
-    pod-completion time vs pod count is typically sub-linear and thus encourages
-    packing more pods on a node, even when the signal identifies full resource
-    utilisation.
+We use to functions for different situations. Typically, we calculate the
+available capacity from the latest signal measurements. However, if we detect a
+recent container event, the remote \verb|pronto| pod calculates the capacity
+from the pod count. This is to reduce the instability introduced by the
+container runtime. Furthermore, with this signal, the central scheduler does not
+have to record the per-pod-cost at bind time as the signal is now given in terms
+of individual pod counts. This simplifies the central scheduler and reduces the
+memory demand on.
 
-    An optimisation I proposed was to borrow the concept from TCP flow-control.
-    This method uses a moving window of the latest n pod completion times, which
-    it uses to identify trends or potential spikes. The challenge in this
-    situation is that the method needs to be as efficient as possible while also
-    being able to handle pods of different workloads and completion times
-    without prior knowledge of different classes.
 
-    I compare the change in the sum of square completion times against a
-    threshold. I use the sum of squares to penalize more an increase in the
-    completion of longer running jobs. This is because a proportional increase
-    in completion time has a worse impact the longer the job runs for. Whenever
-    an incoming entry keeps the sum below the threshold, the overprovision
-    capacity increases, while any completion times that exceed the threshold
-    result in the overprovision capacity to halve. This results in a similar
-    saw-tooth behaviour seen in TCP and allows nodes to accept more pods while
-    keeping.
-    }
-\end{tcolorbox}
+\section{Scheduler Integration}
+In this section, I will explain further how I integrated the previous components into
+the Kubernetes ecosystem.
 
+\subsection{Remote Scheduler Component}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/pronto-pod.pdf}
+    \caption{Core components within the remote scheduler pod}
+    \label{pronto-pod-components}
+\end{figure}
+As mentioned in section \ref{sec:sys-arch}, the signals are generated by pods
+defined by a DaemonSet: each node will contain a single pod which performs the
+core functionality of the Pronto system shown in figure
+\ref{pronto-pod-components}.
+
+\subsection{Aggregation Component}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/pronto-agg.pdf}
+    \caption{Core components within the aggregator pod}
+    \label{pronto-agg-components}
+\end{figure}
+
+As mentioned earlier in section \ref{sec:aggregation}, the aggregator trades
+consistency for latency and throughput. On aggregation request it returns the
+latest global model and enqueues the local model it received. Another worker
+thread running in the background dequeues local models and merges them into the
+global model.
+
+\subsection{Scheduler Component}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/pronto-sched.pdf}
+    \caption{Core components within the central scheduler pod}
+    \label{pronto-agg-components}
+\end{figure}
+
+I decided to implement the scheduling component as a Kubernetes Framework
+Plugin. The standard Kubernetes scheduler exposes a series of extension points,
+which allows users to define custom functions within the scheduling cycle. A
+Scheduler Plugin is a more favourable approach as it allows me to use an
+existing system designed to operate at an industrial level. The Pronto Plugin
+implements the following extension points:
+\begin{itemize}
+    \item: Filter - this function filters out any nodes based on $
+        \text{capacity available} - \text{capacity reserved} < \epsilon$.
+    \item Score - this function assigns a score based on the available capacity.
+        The greater the available capacity, the greater the score and thus the
+        more likely it is to be chosen for pod placement
+    \item Reserve - once a node is chosen to host the pod, the reserve function
+        records the pod's name and increments the node's reserved capacity.
+\end{itemize}
+
+This pod also has a Kubernetes API Pod Event listener which listens out for pods
+that have transitioned from the Pending status. For each event that this occurs,
+it checks if this pod was scheduled by the scheduler and decrements its value
+from reserved.
+
+\section{Throughput and Optimisations}
+
+\subsection{Observed Sub-Linear Latency Scaling}
+While evaluating the prototype, I was stumped by its lackluster throughput
+compared to \verb|kube-scheduler|. When deploying 1000 pods across 19 nodes,
+\verb|kube-scheduler| would immediately distribute all pods fairly across all
+the nodes. This resulted in $\approx$ 45 pods running on each node. Whereas, the
+Pronto prototype ensured that no resource was fully utilised and had at most 5
+pods running on a node at once. While the individual pod completion time was far
+lower, it resulted in a lower throughput.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/blank.pdf}
+    \caption{Pod completion time against the number of pods running on a node at
+    once.}
+    \label{fig:number-vs-completion}
+\end{figure}
+
+Further investigation in the relationship between the number of pods running on
+a node at a time and their completion time showed a sub-linear relationship;
+shown in figure \ref{fig:number-vs-completion}. I hypothesise that this is
+caused by CPU utilisation not being a representative utilisation metric. While a
+node may reach 100\% CPU utilisation, it means that a CPU is always doing work,
+but it does not guarantee threads are experiencing high contention. Therefore,
+CPU utilisation is not a definitive measure of resource capacity, and explains
+why the prototype is not able to push through in terms of pod count and achieve
+higher throughput.
+
+\subsection{TCP-style Optimisation}
+The goal of the optimisation is to artificially increase the capacity of the
+node, as long as it does not push pod completion time beyong a limit and
+deteriorate QoS. An additional requirement is that the method needs to be as
+efficient as possible while also being able to handle pods of different
+workloads and completion times without the requirement of pod-descriptions.
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/blank.pdf}
+    \caption{Example trace of this over-provision capacity exhibiting TCP
+    Saw-tooth trend.}
+    \label{fig:overprovision-sawtooth}
+\end{figure}
+
+To achieve this, I decided to borrow the concept from TCP flow-control. This
+method uses a moving window of the latest n pod completion times, with the goal
+to identify deteriorating QoS. When receiving a new pod completion time, I
+update in O(1) time $\sum (\text{completion time})^2$. By squaring the
+completion times, the sum penalizes more longer pod completions that have
+increased. It then checks if the new sum is less than the threshold (previous
+sum scaled by a constant). If below, we can increment the over-provision
+capacity. However, if the new sum exceeds the threshold, the over-provision
+capacity is halved. This results in a similar saw-tooth behaviour as seen in TCP
+transmissions and allows the node to artificially increase capacity while
+mitigating increases in completion times.
 

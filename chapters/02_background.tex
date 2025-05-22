@@ -1,5 +1,6 @@
 \chapter{Background}
 % A more extensive coverage of what's required to understand your work.
+
 % In general you should assume the reader has a good undergraduate
 % degree in computer science, but is not necessarily an expert in the
 % particular area you've been working on. Hence this chapter may need to
@@ -40,39 +41,39 @@ container runtime: software responsible for running containers.
 
 Kubernetes objects are persistent entities in the Kubernetes system. They act as
 "records of intent" and describe the cluster's desired state: once created, the
-Kubernetes system will constantly work to esnure that the objects exists. The
+Kubernetes system will constantly work to ensure that the objects exists. The
 Kubernetes API is used to create, modify or delete Kubernetes objects. Almost
 every Kubernetes object includes two fields: \verb|spec| and \verb|status|.
 \verb|spec| is used on creation as a description of the characteristics you want
 the resource to have, while \verb|status| describes the current state of the
-object, supplied and updated by the Kuberentes system. These fields are crucial
+object, supplied and updated by the Kubernetes system. These fields are crucial
 for scheduling pods as they behave like resource constraints, with which the
 Kubernetes schedulers can use to determine optimal pod placement.
 
 \section{Analysis of Scheduling Approaches and QoS-Aware Trends}
 Different Kubernetes schedulers take varied approaches to plod placement, from
-simple heuristics to gloabl optimisations and machine learning. This diversity
+simple heuristics to global optimisations and machine learning. This diversity
 reflects the wide range of workload requirements and cluster scales seen in
 practice. In the following subsections, we compare how different schedulers
-leverage different data inputs for decision-making, which fundamentaly
+leverage different data inputs for decision-making, which fundamentally
 influences their scheduling strategy and resulting quality of service (QoS) for
 workloads.
 
 \subsection{Pod Spec-Only Scheduling vs Telemetry-Aware Scheduling}
 
-\textbf{Pod Description-Based schedulers} rely soley on the information declared
-in the pod specfication and cluster configuration (static data). The default
+\textbf{Pod Description-Based schedulers} rely solely on the information declared
+in the pod specification and cluster configuration (static data). The default
 Kubernetes scheduler \cite{} and similar schedulers like Yunikorn or Volcano
 \cite{} fall in this category. They consider factors such as requested
 CPU/memory, labels and selectors, affinity/anti-affinity rules, and priority.
 This approach is more reliable for ensuring that the declared needs of a pod are
-met. For example, a pod will only be placed ona  node that has enough free
-capacity according to a resource requests, and it will honor policies like zone
+met. For example, a pod will only be placed on a node that has enough free
+capacity according to a resource requests, and it will honour policies like zone
 spreading or node affinity.
 
 Benefits of this method are predictability and
 simplicity: by using static reservations, the scheduler guarantees that if every
-opd accurately requests its needs, no node will be over-committed at scheduling
+pod accurately requests its needs, no node will be over-committed at scheduling
 time. This can protect critical workloads by giving them guaranteed resources
 (as in Kubernetes Guaranteed QoS class). It also enables fairness policies at
 high level (e.g. Yunikorn's queues and priorities ensure no team monopolises the
@@ -84,10 +85,10 @@ static-only scheduling may lead to less optimal placements: for instance, a new
 pod might be placed on a node that technically has room (per requests) but is
 currently experience high CPU utilisation from other processes, leading to
 contention. Meanwhile, an underutilised node could be ignored because its
-capacity appears full due ot over-requested resources or sticky allocations. In
+capacity appears full due to over-requested resources or sticky allocations. In
 summary, purely \verb|spec|-based scheduling treats the cluster as a static
-partioning of resources; it ensures each workload's declared needs are met, but
-it can't respond to real-time perforamance variations.
+partitioning of resources; it ensures each workload's declared needs are met, but
+it can't respond to real-time performance variations.
 
 \textbf{Telemetry-Based schedulers}, incorporate live metrics and feedback from
 the cluster's current state to make more informed decisions. These schedulers
@@ -102,13 +103,13 @@ By using this data, telemetry-driven scheduling can avoid placing pods on nodes
 that are struggling or overloaded in real-time. For instance, a telemetry-aware
 scheduler might detect that Node A's CPU is 90\% busy and Node B's is 20\% and
 therefore prefer Node B for a new pod - even if, by static allocation, both
-nodes had equall allocable capacity remaining. This dynamic adaptability
-directly imporves QoS: workloads get more stable performance because they are
+nodes had equal allocable capacity remaining. This dynamic adaptability
+directly improves QoS: workloads get more stable performance because they are
 less likely to be scheduled to an over-taxed machine. Moreover, telemetry-based
 rules can target specific QoS concerns: Intel's TAS can steer latency-sensitive
-network functions awway from nodes with high cache thrashing, preventing
+network functions away from nodes with high cache thrashing, preventing
 unpredictable latency spikes \cite{}. The benefits of telemetry awareness is
-hgher efficiency and resiliency - clusters can run closer to their true capacity
+higher efficiency and resiliency - clusters can run closer to their true capacity
 (Trimaran's TargetLoadPacking can pack workloads until it observes
 near-saturation) but back off when needed to maintain performance. It also helps
 in maintaining SLAs by reacting to early warning signals before they become
@@ -118,21 +119,21 @@ The challenge, however, is complexity: collecting and reacting to metrics adds
 overhead and potential instability (the scheduler decisions are now as dynamic
 as the metrics themselves). Careful design is required to smooth out decisions.
 telemetry-based scheduling brings an automated, feedback-driven approach that
-can greatly boost perforamance and utilisation, but it must be tuned to avoid
+can greatly boost performance and utilisation, but it must be tuned to avoid
 thrashing and to scale metric collection overhead.
 
 \textbf{Hybrid Approaches} combine both static pod descriptions and dynamic
 telemetry to get the best of both worlds: guarantee the fundamental resource
 requests/constraints from pod specs while using telemetry to fine-tune the
 choice among feasible nodes. For example, Firmament (via Poseidon) \cite{}
-respects each pod's requirements, but when mutliple multiple pods are viable it
+respects each pod's requirements, but when multiple multiple pods are viable it
 uses a global optimisation incorporating utilisation metrics to choose the
 optimal placement. Koordinator \cite{} similarly uses class-based static
 partitioning (dedicating some portion of resources or priorities to LC vs.
-best-effor pods) and thuen uses live node feedback to adjust placements and even
+best-effort pods) and then uses live node feedback to adjust placements and even
 migrate workloads at runtime. By blending static and dynamic data, hybrid
 scheduling strategies can enforce high-level policies (like fairness, or
-priority), and ensure those policies aren't undermined by unforeseen runtinme
+priority), and ensure those policies aren't undermined by unforeseen runtime
 conditions. The outcome is often superior QoS in multiple dimensions, but come
 at the cost of the most complexity.
 
@@ -140,13 +141,13 @@ at the cost of the most complexity.
 The choice of data inputs in scheduling directly impacts various QoS metrics:
 
 \textbf{Latency and Response Time:} Schedulers that can account for real-time
-load significantly reduce latency for individual requirests. A telemetry-aware
+load significantly reduce latency for individual requests. A telemetry-aware
 scheduler will avoid placing a latency-critical pod onto a node with high CPU or
 IO wait, thereby ensuring that the pod can get CPU time quickly. In contrast, a
-purely static scheudler might inadvertently colocate many heavy pods on the same
+purely static scheduler might inadvertently co-locate many heavy pods on the same
 node (if their requests were low but actual usage is high), leading to
 contention and higher latency for all pods there. Thus telemetry-driven or
-hybrid schedling is better for meeting low-latency SLAs.
+hybrid scheduling is better for meeting low-latency SLAs.
 
 \textbf{Throughput and Completion Time:} For batch workloads, scheduling
 strategies affects job completion times and overall throughput of the cluster.
@@ -164,7 +165,7 @@ misleading when detecting pod contention.
 
 \textbf{Fairness and Resource Isolation:} Fairness can be considered from
 multi-tenant perspectives (each user gets a fair share) and from a workload
-isolation perspective (no noisy neighbor dominates a node to the detriment of
+isolation perspective (no noisy neighbour dominates a node to the detriment of
 others). Pod spec schedulers address the former via quotas, priority classes,
 etc., and the latter only indirectly (e,g, by requiring all pods to declare
 resources, which if done correctly prevents one pod from consuming what another
@@ -173,11 +174,11 @@ effects - for instance, Koordinator monitors interference metrics and will
 separate batch jobs from latency-senesitive ones if the interference crosses a
 threshold.
 
-\textbf{Resource Utilisation:} Spec-only scheduling often reulies on
+\textbf{Resource Utilisation:} Spec-only scheduling often relies on
 over-requesting (adding safety margins to resource requests) which can leave
 nodes underused. Therefore, these schedulers might not be able to
 completely use all of a node's capacity because they can't safely pack workloads
-beyond the declared requirest. If a user under-requests, it can lead to CPU
+beyond the declared request. If a user under-requests, it can lead to CPU
 throttling and OOM kills and degrade application QoS. On the other hand,
 telemetry-aware scheduler can confidently increase utilisation up to a safe
 limits - for example, Trimaran's TargetLoadPacking will keep filling a node
@@ -239,7 +240,7 @@ can result in sub-par performance?
 \subsection{Summary of Related Work}
 The earlier survey compared how existing Kubernetes schedulers used two
 difference classes of input data - static pod information and telemetry - to
-guide their scheduling decisions. Pod description-based scheudling ensures that
+guide their scheduling decisions. Pod description-based scheduling ensures that
 fundamental resource guarantees are respected. Telemetry-based scheduling can
 more precisely allocate pods to nodes at the cost of increased complexity.
 Hybrid schedulers combine these methods to provide guarantees of fundamental
@@ -248,12 +249,12 @@ reliance on predefined pod requirements still limits the QoS they can achieve.
 Without careful consideration and engineering, erroneous pod resource requests
 can result in under-utilisation or high resource contention.
 
-\subsection{Shortcomings of Common Telemetrics}
+\subsection{Shortcomings of Common Telemetric Data}
 
 Many telemetry-aware Kubernetes schedulers \cite{} use utilisation statistics,
 such as \% CPU used, \% memory used, as these metrics are available in most
 computer systems and can be efficiently collected. While they are easy to
-process, high values do not always just overcontention
+process, high values do not always just over-contention
 
 \begin{figure}
     \caption{\% CPU Utilisation and mean pod completion time against number of
@@ -400,3 +401,4 @@ performance metric generated by the VMware vSphere virtualisation platform.
     % weaknesses of existing Kubernetes schedulesr with respect to QoS
     % scheduling.}
 % \end{tcolorbox}
+

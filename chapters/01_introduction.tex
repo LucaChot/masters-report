@@ -16,10 +16,10 @@
 % call.
 
 Task scheduling is the process of organising, prioritising and allocating tasks
-or activities to resources. Task-scheduling is classifed as a NP-hard
+or activities to resources. Task-scheduling is classified as a NP-hard
 problem, thus requiring practical solutions to juggle the quality of scheduling
 decisions and the computation required to reach those decisions; resources spent
-determing allocations could instead be spent performing the tasks. This
+determining allocations could instead be spent performing the tasks. This
 balancing act becomes ever more difficult with online schedulers
 \cite{pruhs2004online}: schedulers which receive tasks over time, and must
 schedule the tasks without any knowledge of the future. Without entirely knowing
@@ -29,7 +29,7 @@ algorithms that guarantee solutions as close to optimal as possible.
 
 Task scheduling as a problem spans multiple domains and scale: OS-level CPU and
 IO schedulers (e.g. CFQ and FCFS), workflow orchestrators (Airflow), batch
-scheduling workloads in datacenters with thousands of machines. This project
+scheduling workloads in data centres with thousands of machines. This project
 aims to tackle container orchestration within Kubernetes
 \cite{kube-page}, an extensible open-source platform for managing
 containerized workloads and services. Originally created by Google, and thus
@@ -38,7 +38,7 @@ inspired by existing in-house systems \cite{Borg}, it became open-source in
 
 Kubernetes employs \verb|kube-scheduler|, an In-Tree (default) scheduler that
 performs bin-packing, balanced allocation, topology-aware placement and
-preemption. In addition, \verb|kube-scheduler| implements the \textbf{Scheduling
+pre-emption. In addition, \verb|kube-scheduler| implements the \textbf{Scheduling
 Framework}, providing extension points on top of which Out-of-Tree (replacement)
 schedulers can extend the scheduler behaviour.
 
@@ -51,9 +51,9 @@ how to combine in Serverless Compute / Lambda functions.
 online task scheduling across large-scale networks of hundreds of workers
 - Each node executes scheduling decisions on whether to accept an incoming job
 independently based on the workload seen thus far. In addition, aggregating
-local models can contstruct a holistic view of the system
+local models can construct a holistic view of the system
 
-Talk about how there has been few to no signal based kubernetes plugins. Thus,
+Talk about how there has been few to no signal based Kubernetes plugins. Thus,
 this project aimed to transport Pronto into the domain of Kubernetes.
 
 [Give an overview of the system structure: Central scheduler, remote scheduler
@@ -90,3 +90,4 @@ mathematics, the system design, allocation algorithm and optimisations. In
 Chapter 4, we evaluate the performance of Pronto against the standard
 \verb|kube-scheduler|, showing how it greatly reduces individual pod completion
 time. Lastly, we conclude our work and propose potential future directions.
+

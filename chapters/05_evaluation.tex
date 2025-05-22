@@ -4,29 +4,20 @@
 % of evaluation, and it's often useful to separate this out into its own
 % chapter.
 
-\section{CPU-centric workloads}
+\section{Batch workloads}
 \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
-    \textbf{CPU-Centric Metric:} {\em In this section, I will compare Pronto
-    against the Kubernetes scheduler when running simple CPU-based pods. I
-    will measure job completion time, resource utilisation and individual pod
-    completion time distribution
-    }
+    \textbf{Batch Workloads:} {\em In this section, I will compare Pronto
+    against the Kubernetes scheduler when running batch jobs. In this section I
+    will explore both CPU, Memory-Intensive and Multi-Resource workloads. I will
+    evaluate the throughput, completion time and response time.}
 \end{tcolorbox}
 
-
-\section{Short and Long Workloads}
+\section{Sensitive Workloads}
 \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
-    \textbf{Short and Long Workloads:} {\em In this section, I will compare
-    Pronto against the kubernetes scheduler when running pods of variable
-    run-times.
-    }
-\end{tcolorbox}
-
-\section{Multi-Resource Workloads}
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
-    \textbf{Multi-Resource Workloads:} {\em Finally, I will compare Pronto
-    against the kubernetes scheduelr when running pods .
-    }
+    \textbf{Sensitive Workloads:} {\em In this section I will investigate how
+    this scheduler protects sensitive workloads. I will have a server running in
+    the background on a node and will schedule a batch of jobs. I will measure
+    how a servers response time changes.}
 \end{tcolorbox}
 
 \section{Limitation}
@@ -34,7 +25,7 @@
     \textbf{Limitations:} {\em In this section, I will go over the limitations
     of the system. I will highlight how certain metrics like CPU-Utilisations
     don't give any more information once saturated. I will also have to mention
-    how due to the sub-linear pod completion time, the kubernetes scheduler is
+    how due to the sub-linear pod completion time, the Kubernetes scheduler is
     able to achieve higher job throughput by packing more pods into nodes.
     }
 \end{tcolorbox}
@@ -45,3 +36,4 @@
     evaluation section, highlighting key findings and reasoning.
     }
 \end{tcolorbox}
+

@@ -2,7 +2,7 @@
 
 Pronto is a federated asynchronous, memory-limited algorithm proposed for online
 task-scheduling across large-scale networks of hundreds of workers. Each
-individual node to update their own local model basd on the workload seen so far
+individual node to update their own local model based on the workload seen so far
 and generate a rejection signal which reflects the overall node responsiveness
 and whether it can accept an incoming task. In addition, aggregating the local
 models builds a global view of the system. Kubernetes is an existing open-source
@@ -15,7 +15,7 @@ ecosystem of support and tools.
 The standard Kubernetes scheduler uses fixed node and pod information to make
 scheduling decisions. I propose to apply Pronto to the Kubernetes ecosystem. The
 aim is to implement an online scheduler that uses online methods to both
-maximies resource utilisation and minimise per-pod latency while still being
+maximise resource utilisation and minimise per-pod latency while still being
 competitive with the industry-standard Kubernetes scheduler. During this
 project I had to modify the mathematics behind Pronto, proposing novel sub-space
 merging techniques, as well as a new signal function. In addition, I implemented
@@ -23,5 +23,6 @@ a prototype of the Pronto-based Kubernetes scheduler, comparing it against the
 standard Kubernetes scheduler. These experiments demonstrate that Pronto is
 able to achieve a significantly lower pod completion time distribution while
 remaining competitive (Include values). Thus, Pronto may exceed in situations
-were pod completion is weighted more than throughput of pods, such as serverless
+were pod completion is weighted more than throughput of pods, such as server-less
 compute.
+
