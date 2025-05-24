@@ -1,28 +1,41 @@
 \chapter*{Abstract}
 
-Pronto is a federated asynchronous, memory-limited algorithm proposed for online
-task-scheduling across large-scale networks of hundreds of workers. Each
-individual node to update their own local model based on the workload seen so far
-and generate a rejection signal which reflects the overall node responsiveness
-and whether it can accept an incoming task. In addition, aggregating the local
-models builds a global view of the system. Kubernetes is an existing open-source
-container orchestration system that automates the deployment, scaling and
-management of containerized applications. It can run production workloads,
-having becoming the foundation for many cloud computing services like Google
-Cloud and AWS, while also being portable and extensible with a rapidly growing
-ecosystem of support and tools.
+Kubernetes is an existing widely-used open-source container orchestration system
+that automates the deployment, scaling and management of containerized
+applications. Efficient scheduling is a critical component of Kubernetes,
+dictating an optimal allocation of pods across nodes to maximise a set of goals.
+Existing Kubernetes schedulers can be classified according to the input data
+they use to inform scheduling decisions: pod-description vs. telemetry. The
+performance of pod-description based schedulers relies on accurate workload
+estimations which is not always known beforehand. Meanwhile, telemetry-based
+schedulers use live information to maximise resource utilisation of nodes and
+prevent them from becoming overloaded. These telemetry-based schedulers
+typically use utilisation metrics which can be overly sensitive and generate
+false notifications of full capacity.
 
-The standard Kubernetes scheduler uses fixed node and pod information to make
-scheduling decisions. I propose to apply Pronto to the Kubernetes ecosystem. The
-aim is to implement an online scheduler that uses online methods to both
-maximise resource utilisation and minimise per-pod latency while still being
-competitive with the industry-standard Kubernetes scheduler. During this
-project I had to modify the mathematics behind Pronto, proposing novel sub-space
-merging techniques, as well as a new signal function. In addition, I implemented
-a prototype of the Pronto-based Kubernetes scheduler, comparing it against the
-standard Kubernetes scheduler. These experiments demonstrate that Pronto is
-able to achieve a significantly lower pod completion time distribution while
-remaining competitive (Include values). Thus, Pronto may exceed in situations
-were pod completion is weighted more than throughput of pods, such as server-less
-compute.
+I decided to explore the application of the theory behind Pronto, a federated
+asynchronous memory-limited algorithm proposed for task-scheduling across
+large-scale networks of hundreds of workers, to scheduling within Kubernetes.
+Each individual node updates their own local model based on the workload seen so
+far (contention-based telemetry) and uses peak-prediction generate a rejection
+signal which reflects the overall node responsiveness and whether it can accept
+an incoming task. In addition, aggregating the local models builds a global view
+of the system. However, as the paper assumes no communication latency and spikes
+within a Kubernetes node's contention-based metric are not reflective of
+over-contention, peak-prediction is no longer an accurate indicator.
 
+As a result I propose a novel algorithm, Spazio\footnote{Spazio: space in
+Italian}, with the same properties of Pronto while also allowing the existance
+of communication latency. Nodes in Spazio update their local model with
+capacity-based metrics and score themselves according to their predicted
+capacity: how well a nodes current resource usage compliments recent measured
+workload. Furthermore, Spazio also utilises contention-based metrics to more
+accurately measure the resource capacity of a node.
+
+To evaluate Spazio, I implement a prototype of Spazio in Kubernetes, evaluating
+individual components to ensure correctness of behaviour. Finally, I compare
+Spazio against the industry-standard \verb|kube-scheduler| (the default
+scheduler of Kubernetes), evaluating Spazio's throughput and its
+quality-of-service (QoS). From the evaluation, I show how Spazio can achieve
+high workload-isolation, low latency while achieving comparable throughput
+compared to Kubernetes.

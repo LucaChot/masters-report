@@ -1,4 +1,4 @@
-\chapter{Introduction}
+\chapter{Introduction (961)}
 \label{firstcontentpage} % start page count here
 
 % This is the introduction where you should introduce your work. In
@@ -15,10 +15,43 @@
 % although without care this can appear formulaic and tedious. Your
 % call.
 
+% Kubernetes is a widely-used open-source container orchestration system that
+% automates the deployment, scaling and management of containerized applications.
+% It can run production workloads, having becoming the foundation for many cloud
+% computing services like Google Cloud and AWS, while also being portable and
+% extensible with a rapidly growing ecosystem of support and tools. Efficient
+% scheduling is a critical component of Kubernetes, dictating how deployments
+% are best allocated across nodes and ensuring no individual node is overloaded.
+% Existing Kubernetes schedulers can be classified according to the input data
+% they use to inform scheduling decisions: pod-description vs. telemetry. The
+% performance of pod-description based schedulers relies on accurate workload
+% estimations which is not always available. Meanwhile, telemetry-based schedulers
+% use live information to maximise resource utilisation of nodes and prevent them
+% from becoming overloaded. These telemetry-based schedulers typically use
+% utilisation metrics which can be overly sensitive and generate false
+% notifications of full capacity.
+%
+
+Kubernetes has established itself as the leading platform for container
+orchestration, experiencing widespread adoption across diverse industries and
+organizations of all scales \cite{kubernetes-adoption-statistics}. From
+traditional stateless microservices that power modern web applications and
+APIs, to complex stateful databases requiring persistent storage, Kubernetes
+provides a robust and flexible foundation. It seamlessly orchestrates
+high-throughput batch processing jobs, streamlines continuous integration and
+delivery (CI/CD) pipelines, and has become the infrastructure backbone for
+cloud computing services like Google Cloud and Azure \cite{google-gke, azure-aks}. Furthermore, its
+versatility extends to supporting machine learning (ML) deployments
+\cite{kubernetes-ai}, edge computing \cite{cloudraft}, and even serverless
+functions, which are short-lived, event-driven workloads that can be
+effectively managed and scaled on Kubernetes using frameworks like Knative or
+OpenWhisk \cite{knative, openwhisk}. This broad applicability solidifies
+Kubernetes' position as a cornerstone of the cloud-native industry.
+
 Task scheduling is the process of organising, prioritising and allocating tasks
-or activities to resources. Task-scheduling is classified as a NP-hard
-problem, thus requiring practical solutions to juggle the quality of scheduling
-decisions and the computation required to reach those decisions; resources spent
+or activities to resources. Task-scheduling is classified as a NP-hard problem,
+thus requiring practical solutions to juggle the quality of scheduling decisions
+and the computation required to reach those decisions; resources spent
 determining allocations could instead be spent performing the tasks. This
 balancing act becomes ever more difficult with online schedulers
 \cite{pruhs2004online}: schedulers which receive tasks over time, and must
@@ -27,67 +60,98 @@ of all tasks to come, the scheduler can't guarantee optimal schedules. As a
 result, much research has been focused on finding efficient scheduling
 algorithms that guarantee solutions as close to optimal as possible.
 
-Task scheduling as a problem spans multiple domains and scale: OS-level CPU and
-IO schedulers (e.g. CFQ and FCFS), workflow orchestrators (Airflow), batch
-scheduling workloads in data centres with thousands of machines. This project
-aims to tackle container orchestration within Kubernetes
-\cite{kube-page}, an extensible open-source platform for managing
-containerized workloads and services. Originally created by Google, and thus
-inspired by existing in-house systems \cite{Borg}, it became open-source in
-2014.
+In the dynamic and resource-intensive landscape of containerized applications,
+efficient online scheduling is paramount for both performance and
+cost-effectiveness. Poor scheduling decisions can lead to significant
+infrastructure waste, directly impacting an organisation's bottom line. For
+instance, over-provisioning of resources due to inefficient bin-packing can
+result in substantial cloud bills. Choosing optimal bin packing strategies could
+result in up to 66\% reduction in bills
+\cite{bin-packing-and-cost-savings-in-kubernetes-clusters-on-aws}. Conversely,
+under-provisioning can lead to performance degradation, application crashes and
+costly downtime. Misconfiguration in resource requests and limits are a
+primary cause of under-utilised resources or idle nodes, and thus higher
+billing \cite{cost-strategies}.
 
-Kubernetes employs \verb|kube-scheduler|, an In-Tree (default) scheduler that
-performs bin-packing, balanced allocation, topology-aware placement and
-pre-emption. In addition, \verb|kube-scheduler| implements the \textbf{Scheduling
-Framework}, providing extension points on top of which Out-of-Tree (replacement)
-schedulers can extend the scheduler behaviour.
+The available Kubernetes schedulers can be divided based on the information they
+use to inform their scheduling decisions: pod-description based schedulers,
+which use pod annotations to declare resource requests, limits or QoS classes,
+or telemetry based schedulers, which periodically collected live information
+from each node. As mentioned earlier, pod-description based schedulers rely on
+accurate resource estimations. Telemetry-based schedulers can circumvent this
+problem, but rely on metrics that are reflective of a node's true capacity and
+current resource usage. From my investigation, I show how the popular CPU
+Utilisation metric can be misleading when detecting if a node is at full
+capacity.
 
-Talk about existing Kubernetes extension. Look at quality of Service plugins and
-how the current Kubernetes can't support that with bin-packing. Talk about
-rather than trying to blindly optimise for throughput, consider QoS. Look into
-how to combine in Serverless Compute / Lambda functions.
+I decided to explore the application of the theory behind Pronto, a novel
+federated asynchronous memory-limited algorithm proposed for task-scheduling
+across large-scale networks of hundreds of workers, to scheduling within
+Kubernetes. Each individual node updates their own local model based on the
+workload seen so far (contention-based telemetry) and uses peak-prediction
+generate a rejection signal which reflects the overall node responsiveness and
+whether it can accept an incoming task. In addition, aggregating the local
+models builds a global view of the system. However, as the paper assumes no
+communication latency and spikes within a Kubernetes node's contention-based
+metric are not reflective of over-contention, peak-prediction is no longer an
+accurate indicator.
 
-- Why Pronto? Pronto is a federated, asynchronous, memory-limited algorithm for
-online task scheduling across large-scale networks of hundreds of workers
-- Each node executes scheduling decisions on whether to accept an incoming job
-independently based on the workload seen thus far. In addition, aggregating
-local models can construct a holistic view of the system
+As a result I propose a novel algorithm, Spazio\footnote{Spazio: space in
+Italian}, with the same properties of Pronto while also allowing the existance
+of communication latency. Nodes in Spazio update their local model with
+capacity-based metrics and score themselves according to their predicted
+capacity: how well a nodes current resource usage compliments recent measured
+workload. Furthermore, Spazio also utilises contention-based metrics to more
+accurately measure the resource capacity of a node.
 
-Talk about how there has been few to no signal based Kubernetes plugins. Thus,
-this project aimed to transport Pronto into the domain of Kubernetes.
-
-[Give an overview of the system structure: Central scheduler, remote scheduler
-and aggregate server]
-
-Talk about modifying the mathematics behind Pronto to get it to work in this
-domain. Talk about creating the allocation function, the need for a reserve
-function.
+To evaluate Spazio, I implement a prototype of Spazio in Kubernetes, evaluating
+individual components to ensure correctness of behaviour. Finally, I compare
+Spazio against the industry-standard \verb|kube-scheduler| (the default
+scheduler of Kubernetes), evaluating Spazio's throughput and its
+quality-of-service (QoS). From the evaluation, I show how Spazio can achieve
+high workload-isolation, low latency while achieving comparable throughput
+compared to Kubernetes.
 
 To sum up, this project makes the following contributions:
 \begin{itemize}
-\item Implement a Pronto-based scheduler for Kubernetes\\
+\item Investigate the feasibility of applying Pronto to Kubernetes scheduling
+\item Propose a novel scoring algorithm with the same properties as Pronto,
+    while also considering possible communication latency.
     \begin{itemize}
-    \item Modify the subspace merge operations to take into account a different
-    vector space
-    \item Introduce signal processing techniques to calculate reserve amount
-    \item Implement TCP flow-control inspired technique to push throughput while
-    still ensuring QoS
+        \item Novel application of FSVD to build a local model of recent
+            resource usage.
+        \item Adapted the standard SVD subspace merge operation to account for
+            lack of mean-centering.
+        \item Provide a novel signal that scores a node's predicted capacity
+            according to recent workloads.
+        \item Provide a method of reserving the signal to account for
+            communication latency.
     \end{itemize}
-\item Demonstrate that this prototype can achieve competitive throughput with
-substantial reduction in per-pod completion time.
+\item Implement a prototype of Spazio to evaluate the strengths and weaknesses
+    of the algorithm.
+    \begin{itemize}
+        \item Investigate different metrics to use to build the local model
+        \item Investigate signal behaviour under different loads
+        \item Investigate different approaches to estimating node capacity and
+            pod cost
+        \item Investigate the overall performance of the prototype under
+            different loads to evaluate its performance: throughput, QoS,
+            performance isolation.
+    \end{itemize}
 \end{itemize}
 
-Potentially discuss the drawbacks.
 
-TODO: Check if there are any existing QoS schedulers that do not use predefined
-constraints. What is a use case in which one does not know exactly how much
-resources a task will take.
-
-In Chapter 2, we go over existing Kubernetes schedulers and why they do not
+In Chapter 2, I go over existing Kubernetes schedulers and why they do not
 achieve true online QoS (no prior knowledge of pod resource usage and
-requirement). In Chapter 3, we explain our proposed system: outlining the
-mathematics, the system design, allocation algorithm and optimisations. In
-Chapter 4, we evaluate the performance of Pronto against the standard
+requirement). Furthermore, I conduct a brief investigation into the
+applicability of Pronto in Kubernetes, highlighting flaws in communication
+latency assumptions and the behaviour of contention-based metrics in Kubernetes
+that makes it difficult to perform peak-prediction. In Chapter 3, I propose the
+novel algorithm, Spazio, providing proofs for correctness while also exploring
+potential workload scenarios to explain the expected behaviour of the signal. In
+Chapter 4, I outline the structure of the Spazio prototype, delving into design
+decisions while performing micro-experiments to evaluate individual components.
+In Chapter 5, I evaluate the performance of the Spazio scheduler against the standard
 \verb|kube-scheduler|, showing how it greatly reduces individual pod completion
 time. Lastly, we conclude our work and propose potential future directions.
 

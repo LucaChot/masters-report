@@ -13,19 +13,13 @@
 % rest of the dissertation.
 %
 
-\section{Online Schedulers}
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Online Schedulers:}
-{\em This chapter formalises the scheduling problem as well as highlighting the
-additional challenges of online scheduling vs offline scheduling. In addition,
-it will list existing scheduler taxonomies, highlighting their use cases,
-advantages and disadvantages.}  \end{tcolorbox}
-
 \section{Kubernetes Overview}
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/components-of-kubernetes.pdf}
-    \caption{The components of a Kubernetes cluster}
+    \caption{The components of a Kubernetes cluster. \textbf{Source:}
+    \cite{kubernetes-components}}
     \label{kube-components}
 \end{figure}
 
@@ -50,8 +44,28 @@ object, supplied and updated by the Kubernetes system. These fields are crucial
 for scheduling pods as they behave like resource constraints, with which the
 Kubernetes schedulers can use to determine optimal pod placement.
 
+\section{Scheduling in Kubernetes}
+In Kubernetes, Pods are the smallest deployable units of computing that you can
+create and manage in Kubernetes. It represents a single instance of a running
+process in your cluster and typically contains one or more containers that are
+tightly coupled and share resources. Pods can be individually created with their
+own Yaml files. However, the Kubernetes API also provides workload objects to manage
+multiple pods: these objects repressent a higher abstraction level than a Pod,
+and the Kubernetes control plane uses the workload's specification to manage Pod
+objects on your behalf. The built-in APIs for managing workloads include
+Deployment, StatefulSet, DaemonSet and Job.
+
+When a Pod is created, it initially exists in a "Pending" state - it has been
+declared by hasn't been allocated to a Node. Kubernetes schedulers watch for
+newly created Pods that have yet been assigned to a Node, and based on a set of
+rules or algorithms, select the most suitable Node for that Pod. Once a Node is
+chosen, the scheduler "binds" the Pod to the Node, updating the Pod's definition
+in the Kubernetes API server by setting its \verb|spec.nodeName| field to the
+name of the Node. Once this occures, the Pod transitions from "Pending" to
+"Running".
+
 \section{Analysis of Scheduling Approaches and QoS-Aware Trends}
-Different Kubernetes schedulers take varied approaches to plod placement, from
+Different Kubernetes schedulers take varied approaches to Pod placement, from
 simple heuristics to global optimisations and machine learning. This diversity
 reflects the wide range of workload requirements and cluster scales seen in
 practice. In the following subsections, we compare how different schedulers
@@ -59,34 +73,25 @@ leverage different data inputs for decision-making, which fundamentally
 influences their scheduling strategy and resulting quality of service (QoS) for
 workloads.
 
-\section{Serverless Workloads}
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Serverless
-    Workloads:} {\em This section I will introduce the concept of serverless
-    functions and how it is growing industry: adapted in multiple cloud
-    services. Explain the typical workloads: resources, duration and actions.
-Explain why containers are perfect for these workloads due to their fast start
-up time compared to booting up VMs.}  \end{tcolorbox}
-
-
 \subsection{Pod Spec-Only Scheduling vs Telemetry-Aware Scheduling}
 
-\textbf{Pod Description-Based schedulers} rely solely on the information declared
-in the pod specification and cluster configuration (static data). The default
-Kubernetes scheduler \cite{} and similar schedulers like Yunikorn or Volcano
-\cite{} fall in this category. They consider factors such as requested
-CPU/memory, labels and selectors, affinity/anti-affinity rules, and priority.
-This approach is more reliable for ensuring that the declared needs of a pod are
-met. For example, a pod will only be placed on a node that has enough free
-capacity according to a resource requests, and it will honour policies like zone
+\textbf{Pod Description-Based schedulers} rely solely on the information
+declared in the pod specification and cluster configuration (static data). The
+default Kubernetes scheduler \cite{kube-scheduler} and similar schedulers like
+Yunikorn \cite{cloudera_yunikorn_2019} or Volcano \cite{volcano_introduction}
+fall in this category. They consider factors such as requested CPU/memory,
+labels and selectors, affinity/anti-affinity rules, and priority. This approach
+is more reliable for ensuring that the declared needs of a pod are met. For
+example, a pod will only be placed on a node that has enough free capacity
+according to a resource requests, and it will honour policies like zone
 spreading or node affinity.
 
-Benefits of this method are predictability and
-simplicity: by using static reservations, the scheduler guarantees that if every
-pod accurately requests its needs, no node will be over-committed at scheduling
-time. This can protect critical workloads by giving them guaranteed resources
-(as in Kubernetes Guaranteed QoS class). It also enables fairness policies at
-high level (e.g. Yunikorn's queues and priorities ensure no team monopolises the
-cluster).
+Benefits of this method are predictability and simplicity: by using static
+reservations, the scheduler guarantees that if every pod accurately requests
+its needs, no node will be over-committed at scheduling time. This can protect
+critical workloads by giving them guaranteed resources (as in Kubernetes
+Guaranteed QoS class). It also enables fairness policies at high level (e.g.
+Yunikorn's queues and priorities ensure no team monopolises the cluster).
 
 However, the downside is a lack of visibility into actual runtime conditions -
 the scheduler is blind to fluctuations in load or hardware state. As a result,
@@ -103,9 +108,9 @@ it can't respond to real-time performance variations.
 the cluster's current state to make more informed decisions. These schedulers
 actively monitor CPU usage, memory pressure, I/O rates, cache misses, network
 latency, etc., either via the Kubernetes Metrics APU, Prometheus, or custom
-telemetry pipelines. Examples include Intel's Telemetry Aware Scheduling \cite{}
+telemetry pipelines. Examples include Intel's Telemetry Aware Scheduling \cite{intel-tas}
 (which uses fine-grained platform metrics like LLC cache hit rates and CPU
-temperature) and the Trimaran plugin suite for Kubernetes \cite{} that uses
+temperature) and the Trimaran plugin suite for Kubernetes \cite{trimaran} that uses
 real-time utilisation stats.
 
 By using this data, telemetry-driven scheduling can avoid placing pods on nodes
@@ -117,7 +122,7 @@ directly improves QoS: workloads get more stable performance because they are
 less likely to be scheduled to an over-taxed machine. Moreover, telemetry-based
 rules can target specific QoS concerns: Intel's TAS can steer latency-sensitive
 network functions away from nodes with high cache thrashing, preventing
-unpredictable latency spikes \cite{}. The benefits of telemetry awareness is
+unpredictable latency spikes \cite{intel-tas}. The benefits of telemetry awareness is
 higher efficiency and resiliency - clusters can run closer to their true capacity
 (Trimaran's TargetLoadPacking can pack workloads until it observes
 near-saturation) but back off when needed to maintain performance. It also helps
@@ -134,17 +139,18 @@ thrashing and to scale metric collection overhead.
 \textbf{Hybrid Approaches} combine both static pod descriptions and dynamic
 telemetry to get the best of both worlds: guarantee the fundamental resource
 requests/constraints from pod specs while using telemetry to fine-tune the
-choice among feasible nodes. For example, Firmament (via Poseidon) \cite{}
-respects each pod's requirements, but when multiple multiple pods are viable it
-uses a global optimisation incorporating utilisation metrics to choose the
-optimal placement. Koordinator \cite{} similarly uses class-based static
-partitioning (dedicating some portion of resources or priorities to LC vs.
-best-effort pods) and then uses live node feedback to adjust placements and even
-migrate workloads at runtime. By blending static and dynamic data, hybrid
-scheduling strategies can enforce high-level policies (like fairness, or
-priority), and ensure those policies aren't undermined by unforeseen runtime
-conditions. The outcome is often superior QoS in multiple dimensions, but come
-at the cost of the most complexity.
+choice among feasible nodes. For example, Firmament (via Poseidon)
+\cite{gog_firmament_2016, poseidon} respects each pod's requirements, but when
+multiple multiple pods are viable it uses a global optimisation incorporating
+utilisation metrics to choose the optimal placement. Koordinator
+\cite{netto_koordinator_2018} similarly uses class-based static partitioning
+(dedicating some portion of resources or priorities to LC vs. best-effort pods)
+and then uses live node feedback to adjust placements and even migrate
+workloads at runtime. By blending static and dynamic data, hybrid scheduling
+strategies can enforce high-level policies (like fairness, or priority), and
+ensure those policies aren't undermined by unforeseen runtime conditions. The
+outcome is often superior QoS in multiple dimensions, but come at the cost of
+the most complexity.
 
 \subsection{Impact on QoS (Latency, Throughput, Fairness)}
 The choice of data inputs in scheduling directly impacts various QoS metrics:
@@ -160,17 +166,17 @@ hybrid scheduling is better for meeting low-latency SLAs.
 
 \textbf{Throughput and Completion Time:} For batch workloads, scheduling
 strategies affects job completion times and overall throughput of the cluster.
-Volcano's \cite{} gang scheduling ensures all tasks of a parallel job start
-together so the job can finish as quickly as possible with no stragglers waiting
-for resources. This improves throughput of a batch workload and avoids resource
-waste. Similarly, a scheduler using telemetry can balance load by preventing
-certain nodes from becoming bottlenecks. However, using utilisation metrics does
-not always guarantee optimal throughput. For example, when 5 pods are running on
-a node, the node may advertise 100\% CPU usage. When running an additional pod,
-CPU utilisation will remain at 100\% but the resulting pod completion times
-may increase sub-linearly with the number of pods and thus result in
-higher-throughput. This example highlights how utilisation metrics can be
-misleading when detecting pod contention.
+Volcano's \cite{volcano_introduction} gang scheduling ensures all tasks of a
+parallel job start together so the job can finish as quickly as possible with
+no stragglers waiting for resources. This improves throughput of a batch
+workload and avoids resource waste. Similarly, a scheduler using telemetry can
+balance load by preventing certain nodes from becoming bottlenecks. However,
+using utilisation metrics does not always guarantee optimal throughput. For
+example, when 5 pods are running on a node, the node may advertise 100\% CPU
+usage. When running an additional pod, CPU utilisation will remain at 100\% but
+the resulting pod completion times may increase sub-linearly with the number of
+pods and thus result in higher-throughput. This example highlights how
+utilisation metrics can be misleading when detecting pod contention.
 
 \textbf{Fairness and Resource Isolation:} Fairness can be considered from
 multi-tenant perspectives (each user gets a fair share) and from a workload
@@ -193,9 +199,7 @@ telemetry-aware scheduler can confidently increase utilisation up to a safe
 limits - for example, Trimaran's TargetLoadPacking will keep filling a node
 until it observes the node is about to hit a predefined utilisation limit.
 
-TODO: Should I include example workloads where incorrectly specifying requests
-can result in sub-par performance?
-
+DO I NEED TO INCLUDE CITATIONS FOR SYSTEMS I HAVE ALREADY REFERENCED
 
 % \section{kube-scheduler (Default Kubernetes Scheduler)}
 % \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Default Kubernetes
@@ -246,14 +250,6 @@ can result in sub-par performance?
 % \end{tcolorbox}
 %
 
-\section{Kubernetes Serverless Schedulers}
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Kubernetes
-Serverless Schedulers:} {\em In this section I will also review existing
-    Serverless schedulers. I will consider what type of scheduling information
-    these schedulers will use and whether these schedulers consider very short
-    workloads such as less than 4 minutes.}
-\end{tcolorbox}
-
 \subsection{Summary of Related Work}
 The earlier survey compared how existing Kubernetes schedulers used two
 difference classes of input data - static pod information and telemetry - to
@@ -267,34 +263,39 @@ Without careful consideration and engineering, erroneous pod resource requests
 can result in under-utilisation or high resource contention.
 
 
+\section{Serverless Workloads and Schedulers}
+\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Serverless
+    Workloads:} {\em This section I will introduce the concept of serverless
+    functions and how it is growing industry: adapted in multiple cloud
+    services. Explain the typical workloads: resources, duration and actions.
+Explain why containers are perfect for these workloads due to their fast start
+up time compared to booting up VMs.
 
-\subsection{Shortcomings of Common Telemetric Data}
+In this section I will also review existing
+    Serverless schedulers. I will consider what type of scheduling information
+    these schedulers will use and whether these schedulers consider very short
+    workloads such as less than 4 minutes
+}  \end{tcolorbox}
 
-Many telemetry-aware Kubernetes schedulers \cite{} use utilisation statistics,
-such as \% CPU used, \% memory used, as these metrics are available in most
-computer systems and can be efficiently collected. While they are easy to
-process, high values do not always signify over-contention.
+\section{Shortcomings of Common Telemetric Data}
 
-\begin{figure}
-    \caption{\% CPU Utilisation and mean pod completion time against number of
-    pods concurrently running on a node}
-    \label{contention}
-\end{figure}
-
-From figure \ref{contention}, we can see that when running more than 5 pods on a
-single node, CPU Utilisation reaches 100 \%. However, further increasing the pod
-count results in a sub-linear increase in mean pod completion time. This
-highlights how these metrics struggle to define the true capacity of a node.
+Many telemetry-aware Kubernetes schedulers \cite{trimaran,
+netto_koordinator_2018, gog_firmament_2016, poseidon} use utilisation
+statistics, such as \% CPU used, \% memory used, as these metrics are available
+in most computer systems and can be efficiently collected. While they are easy
+to process, high values do not always signify over-contention. During the
+implementation of the Spazio prototype, I investigate how CPU Utilisation
+corresponds to Job Completion time. From the investigation, figure
+\ref{fig:podcount-util-pressure} shows that throughput continues to increase as
+we increase the number of concurrently running pods even after CPU utilisation
+reaches 100\%. Therefore I conclude that CPU utilisations is not representative
+of the true CPU capacity. \textbf{I only investigated this on my cluster of
+VMs. This may just be a property of VM machines}.
 
 Few Kubernetes schedulers use deeper contention indicators (e.g. cache pressure,
-memory pressure and CPU throttling) \cite{intel-tas, Koordinator}. I believe
+memory pressure and CPU throttling) \cite{intel-tas, netto_koordinator_2018}. I believe
 that metrics can be used to better inform scheduling decisions compared to the
 standard utilisation metrics.
-
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Summary of Related
-Work:} {\em In this section, also discuss whether other schedulers use
-federation techniques to aggregate node telemetry to improve their scheduling
-decisions.} \end{tcolorbox}
 
 \section{Pronto}
 Pronto is a federated asynchronous, memory-limited algorithm proposed for
@@ -318,7 +319,7 @@ telemetric-based QoS scheduler.
 \subsection{Overview}
 \label{pronto-overview}
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/pronto}
     \caption{Projection of incoming $y \in \mathbb{R}^d$ onto embedding $U \in
@@ -380,7 +381,7 @@ The Pronto paper only provides a method with which to measure node
 "responsiveness" to future workloads. However, it does not include an allocation
 algorithm which then uses this scoring. Furthermore, a binary signal makes it
 difficult to score nodes against each other. Other schedulers typically use a
-scoring function to pick the "optimal" node \cite{}.
+scoring function to pick the "optimal" node \cite{kube-scheduler}\cite{}.
 
 In addition, the paper makes multiple assumptions which don't hold in a Kubernetes
 scheduler. Firstly, it assumes there is no communication latency within the system.
@@ -389,9 +390,43 @@ accepting a task and the task starting to run on the node. This is important as
 the spike prediction uses live telemetry data to predict spikes, and thus the
 score only considers currently running task. In Kubernetes, the latency between
 a pod being bound to a node and the pod actually running on the node is
-significant \cite{}. This introduces another challenge to directly applying
+significant \cite{tyczynski_kubernetes_2015}. This introduces another challenge to directly applying
 Pronto to Kubernetes, as nodes may accept too many pods as the signal does not
 reflect the "in flight" pods.
+
+% The Pronto paper implements a binary "responsiveness" signal which predicts
+% upcoming performance degradation. Because the authors assume a system with no
+% communication latency (implicitly assuming that scheduled workloads were
+% immediately visisble in the signal as well), they could send this signal
+% directly to a central scheduler which could then stop assigning workloads once a
+% node sent a Reject Signal.
+%
+% However, due to significant pod startup latency, the method can't be used in a
+% real-world Kubernetes cluster is infeasible. When measuring pod startup in a
+% 100 node clusters, the more than 50\% of pods took more than $\approx$ 1 second
+% to startup. In addition, when nodes were 100\% full, pod startup could reach up
+% to 4 seconds. This latency is significant when Kubernetes schedulers can
+% support a throughput of $\approx$1000 pods per second
+% \cite{qadeer_scaling_2022}. Applying the same approach as used in the paper,
+% could result in nodes advertising a "willingness" to take on new pods while
+% a large number of pods are in "flight" and once running will immediately
+% overload the node. To prevent this runaway train type problem, I need to define
+% a reservation function: a function that reserves an amount of the signal for a
+% bound pod. This is necessary to allow previous scheduling decisions to have an
+% imnpact on the signal while the signal updates to take into account the
+% scheduled pods.
+%
+% In addition, telemetry-based schedulers can use individual node performance
+% information to score and fine-tune pod allocations. A binary signal does not
+% provide the necessary information for scoring nodes, potentially resulting in
+% worse pod allocations.
+%
+% In summary, the requirements of the signal are:
+% \begin{itemize}
+    % \item Reservable: the scheduler must be able to track the pending impact of
+        % previous scheduling decisions until the pods have begun running.
+    % \item Comparable: the signal must provide enough information to score nodes
+% \end{itemize}
 
 \subsubsection{Peak-Prediction}
 While CPU-Ready is specific to VMware vSphere, other contention metrics
@@ -404,7 +439,6 @@ which at least some tasks are stalled on a given resource, and full which
 indicates the share of time in which all non-idle tasks are stalled on a given
 resource simultaneously.
 
-
 Pronto performs peak-detection on the metrics to predict future spikes which
 then indicate high-resource contention and degraded performance. Therefore, for
 Pronto to make accurate predictions and produce a correct RejectJob signal, PSI
@@ -412,8 +446,12 @@ must exhibit spikes during high-resource contention. To investigate the
 feasibility of peak prediction within a Kubernetes node using PSI metrics, I
 polled the \verb|/proc/pressure| files of nodes when under different workloads.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
+    \includegraphics[width=0.48\textwidth]{images/pressure-baseline.png}
+    \includegraphics[width=0.48\textwidth]{images/pressure-single.png} \\
+    \includegraphics[width=0.48\textwidth]{images/pressure-smallbatch.png}
+    \includegraphics[width=0.48\textwidth]{images/pressure-bigbatch.png}
     \caption{Measurements of \texttt{/proc/pressure/} \texttt{total} value under
     different loads. The container runtime results in spikes no matter the
     workload.}
@@ -426,8 +464,12 @@ container runtime, in this case Containerd, using resource to create or delete
 the containers of the pods.
 
 The PSI metrics also expose an average over the last 10 seconds.
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
+    \includegraphics[width=0.48\textwidth]{images/avg-pressure-baseline.png}
+    \includegraphics[width=0.48\textwidth]{images/avg-pressure-single.png} \\
+    \includegraphics[width=0.48\textwidth]{images/avg-pressure-smallbatch.png}
+    \includegraphics[width=0.48\textwidth]{images/avg-pressure-bigbatch.png}
     \caption{Measurements of \texttt{/proc/pressure/} \texttt{avg10} value
     under different loads. The container runtime results in spikes no matter the
     workload.} \label{fig:pressure-avg}
@@ -437,6 +479,30 @@ contention spikes. However, it also reduces the responsiveness of the metrics -
 in the 10 pod batch, the metrics fails to rise to the same value as in the
 total case before the pods have completed. From this investigation, I concluded
 that peak-prediction with sub-second polling is not feasible within Kubernetes.
+
+% In the paper, Pronto uses \verb|CPU-Reeady| which is generated by the VMware
+% vSphere virtualisation platform. This metric can't be used within a
+% Kubernetes cluster as machines can be both virtual and physical. Since Linux
+% 4.20+, the kernel can track how long tasks are stalled waiting for the CPU
+% at a cgroup granularity. By inspecting the the root cgroup’s CPU pressure
+% file using \verb|cat /proc/pressure/cpu| you can measure the total time all
+% processes spent waiting for the CPU to be available.
+%
+% While this type of metric can be used to alert of performance degradation,
+% this metric has a few shortcomings. Firstly, it only reports CPU-centric
+% information. This is not always representative measure of resource
+% contention as memory-heavy workloads may starve for RAM resources while
+% metrics like \verb|CPU-Ready| and \verb|/proc/pressure/cpu| remain
+% unaffected.
+%
+% Secondly, a significant amount of resources are used starting up or deleting
+% containers. This results in large spikes, as shown in figure
+% \ref{pressure-eval}, which are difficult to distinguish from genuine CPU-Ready
+% spikes. As Pronto uses spike detection to predict future resource performance
+% degradation, container start-ups could produce detectable spikes which would
+% reduce the rate at which pods are assigned to nodes and could result in lower
+% throughput.
+%
 
 \section{Summary}
 
