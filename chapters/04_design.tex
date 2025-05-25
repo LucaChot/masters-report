@@ -2,11 +2,11 @@
 % This chapter may be called something else\ldots but in general the
 % idea is that you have one (or a few) ``meat'' chapters which describe
 % the work you did in technical detail.
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
-    \textbf{Design and Implementation:} {\em In this section, I will outline the
-    goals of my system. I will give a brief overview of the chapter structure,
-    summarising each core section and what I achieve.}
-\end{tcolorbox}
+% \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
+    % \textbf{Design and Implementation:} {\em In this section, I will outline the
+    % goals of my system. I will give a brief overview of the chapter structure,
+    % summarising each core section and what I achieve.}
+% \end{tcolorbox}
 
 In this chapter I outline a novel federated, asynchronous, memory-limited
 algorithm similar to Pronto. However, rather than performing standard FPCA, I
@@ -182,6 +182,7 @@ as each contribution of the previous sample is reduced by $\alpha / (\alpha +
 \beta)$.
 
 \section{Capacity Signal}
+\label{sec:capacity-signal}
 From the model section, we understood $\textbf{U}$ as the orthonormal vectors
 that maximise the projected squared distance of the telemetry dataset
 $\mathbf{A}$. As every element in $\mathbf{A}$ is in the range [0,1], $u_1$
@@ -209,6 +210,7 @@ $\sqrt{\sigma_1/b}$, but this would just scale $k$ for all nodes and not
 provide any more information.
 
 \section{Reserve Cost and Capacity}
+\label{sec:spazio-cost-capacity}
 Like Pronto, Spazio's signal uses its current resource usage, and therefore, only
 reflects Pods that have been scheduled and are running on the Node. For Spazio
 to work in a system with Pod startup latency, the scheduler must be able to

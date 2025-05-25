@@ -30,7 +30,7 @@ The Spazio system consists of three core components (shown in figure
 \section{Spazio Pod}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{images/pronto-pod.pdf}
+    \includegraphics[width=\textwidth]{images/spazio-pod.pdf}
     \caption{Core components within the Spazio pod}
     \label{spazio-pod-components}
 \end{figure}
@@ -212,14 +212,58 @@ the signal, it would allow the local model to be polluted by these
 container-event resource spikes.
 
 \subsection{Signal Generation}
+In the Spazio Pod, the signal is calculated at a frequency of 1Hz. This
+frequency is the same frequency at which the local model is updated. This
+ensures that the signal tracks with the local model. Increasing the frequency
+would give the central scheduler a more up-to-date view of a Node's resource
+status, but would incurr additional resource overhead. Not only would this
+overhead reduce the available resources to other Pods, it would be reflected by
+a lower signal, potentially reducing capacity a Node advertises.
+
+To check for a correct implementation of the signal, I measured the calculated
+signal when under the situations described in \ref{sec:capacity-signal}. The
+collected measuremets are shown in figures \ref{fig:signal-evaluation-cpu} and
+\ref{fig:signal-evaluation-mem}
+
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{images/signal-with-cpu.png}
-    \includegraphics[width=0.45\textwidth]{images/signal-with-memory.png}
-    \caption{This figure demonstrates the capacity signal's behaviour when
-    other Nodes in the cluster experience a large change in workload.}
-    \label{fig:signal-evaluation}
+    \includegraphics[width=\textwidth]{images/signal-with-cpu.png}
+    \caption{The calculated capacity signal of a Node running \texttt{ng-stress
+    --cpu=8 --cpu-load=25}. While running this workload, $1000$ Pods running
+    \texttt{bpi(2000)} was scheduled across surrounding Nodes.}
+    \label{fig:signal-evaluation-cpu}
 \end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/signal-with-memory.png}
+    \caption{The calculated capacity signal of a Node running \texttt{ng-stress
+    --vm=4 --vm-bytes=4G}. While running this workload, $1000$ Pods running
+    \texttt{bpi(2000)} was scheduled across surrounding Nodes.}
+    \label{fig:signal-evaluation-mem}
+\end{figure}
+
+Figures \ref{fig:signal-evaluation-cpu} and \ref{fig:signal-evaluation-mem}
+demonstrates how a Node's capacity signal reacts to changes in surrounding
+workloads when experiencing different resource usage. In Figure
+\ref{fig:signal-evaluation-cpu}, the measured Node is running a light CPU-focused
+workload. Once the CPU-intense workload is scheduled on surrounding Nodes, the
+measured Node's capacity signal drops. This is expected as the local models of
+surrounding Nodes will reflect a more costly CPU-focused workload. As a result,
+when the measured Node aggregates its local model, its new model will reflect
+this higher CPU usage with a larger $\sigma_1$ value. As the measured Node's
+directions of the measured Node's resource usage and expected workload are still
+CPU-focused, the increased $\sigma_1$ value results in a lower $k$, and thus a
+lower capacity signal.
+
+In Figure \ref{fig:signal-evaluation-cpu}, the measured Node is running a light
+Memory-focused workload. When the CPU-intense workload is scheduled on surrounding
+Nodes, the measured Node's capacity signal increases. This matches
+\ref{sec:capacity-signal} hypothesis. Like in the previous scenario, the global model
+reflects a heavy CPU-focused workload, and thus, so will the aggregated local
+model of the measured Node. However, as the measured Node's resource usage is
+now orthogonal to the expected resource usage, a larger constant $k$ is needed
+to maximise a resource. This reflects the sharp increase in capacity signal we
+observe in figure \ref{fig:signal-evaluation-mem}.
 
 \subsection{Calculating Cost and Capacity}
 As the new proposed signal also used its current resource usage in the
@@ -241,21 +285,25 @@ events. The goals of the listeners were as follows:
 \end{itemize}
 The latter requirement is needed as the Dynamic EMA used on the resources won't
 be able to smooth longer resource spikes caused by a burst of multiple container
-events. Instead, by detecting pod events earlier, we can halt reserve
-estimations until the burst has passed.
+events. Instead, by detecting pod events earlier, we can halt capacity and
+per-Pod cost estimations until the burst has passed.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{images/event-comparison-start.png}
-    \includegraphics[width=0.45\textwidth]{images/event-comparison-end.png}
-    \caption{In this figure we sample the change in the total values of
-    \texttt{/proc/pressure/cpu}, \texttt{/proc/pressure/memory},
-    \texttt{/proc/pressure/io} at 10Hz during various Kubernetes workload.}
-    \label{fig:event-evaluation}
+    \includegraphics[width=\textwidth]{images/event-comparison-start.png}
+    \caption{When different event listeners detected the creation of a Pod.}
+    \label{fig:event-evaluation-start}
 \end{figure}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/event-comparison-end.png}
+    \caption{When different event listeners detected the completion of a Pod.}
+    \label{fig:event-evaluation-end}
+\end{figure}
 
-As shown in figure \ref{fig:event-evaluation}, the two-way latency from sending events
+As shown in figures \ref{fig:event-evaluation-start} and
+\ref{fig:event-evaluation-end}, the two-way latency from sending events
 to the \verb|kube-apiserver| before then detecting results in the Kubernetes API
 listener to miss the spikes caused by container events. Without a forewarn, nodes
 will include container event resource spikes into their resource predictions. On
@@ -264,58 +312,96 @@ While handling container events is more complex, it can alert the node of
 potential spikes and thus reduce the introduction of noise into our
 calculations.
 
-\subsubsection{Different Filter Approaches}
-I also investigated several methods of estimating reservation costs:
+\subsubsection{Estimating Pod-Cost}
+As mentioned in Section \ref{sec:spazio-cost-capacity}, Spazio assumes a Node
+has the capability of estimating its capacity and per-Pod cost. I needed a
+streaming signal processing technique with a low-overhead and the ability to
+work with a dynamic system (handle changes in workloads over time). A Kalman filter
+\cite{} is a powerful algorithm used for estimating the true state of a dynamic
+from a series of noisy and uncertain measurements. It's widely applied in fields
+like navigation (GPS), robotics, signal processing and control systems.
+
+TODO: Should I explain what a Kalman filter is in more detail?
+I devised three Kalman filter-based approaches to estimating reservation costs.
 \begin{itemize}
-    \item Kalman Filter predicting reservation cost based on the function:
-        $\Delta \text{signal} = \Delta \text{no. of running pods} \times
-        \text{cost}$.
+    \item 1D Kalman Filter predicting reservation cost based on the function:
+        \[\Delta \text{signal} = \Delta \text{no. of running pods} \times
+        \text{cost}\]
     \item 2D Kalman Filter to predict the signal based on the function:
-        $\text{signal} = \text{capacity} + \text{per pod cost} \times \text{no.
-        of pods}$.
-    \item Two separate Kalman Filters predicting the equation: $\text{signal} =
-        \text{capacity} + \text{per pod cost} \times \text{no. of pods}$. One
-        filter predicts per-pod-cost while the other predicts capacity.
+        \[\text{signal} = \text{capacity} + \text{per pod cost} \times \text{no.
+        of pods}\]
+    \item Two separate 1D Kalman Filters predicting the equation:
+        \[\text{signal} = \text{capacity} + \text{per pod cost} \times \text{no.
+        of pods}\].
+        This dual filter approach has each filter learn a separate variable. By
+        splitting the filter into two, it prevents non-zero covariance
+        entries in the $P$ matrix which cause the oscillations seen in the 2D
+        Kalman filter.
 \end{itemize}
+To smooth out predictions, I employed two techniques. The first technique
+utilised the container event listener: on detection of container churn, the
+Spazio Pod would temporarily halt estimations until it had passed. Secondly, I
+halted estimates once the signal reached 0. When the capacity signal is 0, it
+indicates that at least one resource is at capacity. If this occurs and another
+Pod begins running on the same Node, the signal still outputs 0. Without halting
+estimates, the filters would continue to decrease the per-Pod cost, resulting in
+an inaccurately low per-Pod cost and thus advertise too large of a capacity.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{images/filter-signal.png}
-    \includegraphics[width=0.45\textwidth]{images/filter-comparison.png}
-    \caption{In this figure we sample the change in the total values of
-    \texttt{/proc/pressure/cpu}, \texttt{/proc/pressure/memory},
-    \texttt{/proc/pressure/io} at 10Hz during various Kubernetes workload.}
+    % \includegraphics[width=0.45\textwidth]{images/filter-signal.png}
+    \includegraphics[width=\textwidth]{images/filter-comparison.png}
+    \caption{The estimates of the Kalman filters when Node experiences
+    variable-sized bursts of \texttt{bpi(2000)} Pods.}
     \label{fig:filter-evaluation}
 \end{figure}
+To decide the optimal approach, I observed each methods' behaviour when
+executing Jobs of various sizes. This is depicted in Figure
+\ref{fig:filter-evaluation}.
+While $\Delta$-based Kalman filter produced accurate estimates of per-Pod cost,
+its one-dimensional property prevents it from estimating the capacity of the
+Node. However, its stability inspired the double Kalman filter approach.
+The 2D Kalman filter approach provides a simple method for estimating both the
+Node's capacity and its per-Pod cost. However, to ensure faster convergence, I
+used large constants in the $Q$ matrix. This resulted in large oscillations
+as the filter attempts to correct any error by modifying both the capacity and
+cost variables. Finally, the dual Kalman filters approach converged quickly on
+an accurate estimation without exhibiting the oscillations seens in the 2D
+Kalman filter. This made the Dual 1D Kalman filter the optimal choice.
 
-The $\Delta$-based Kalman filter fails to accurately estimate the per-pod-cost
-once a node achieves full utilisation. When adding new pods to already saturated
-nodes, the change in the signal is very small (can be 0 if the node is already
-saturated). This results in a per-pod-cost that is far too low and would result
-in too many pods being added to a node by the scheduler.
-
-The 2D Kalman filter fairs slightly better as it ensures that the per-pod-cost
-does not decrease to far. However, to ensure faster convergence, we used a
-Kalman filter with large constants in the $Q$ matrix. This then resulted in
-large oscillations as the filter attempts to correct any error by modifying both
-the capacity and cost variables.
-
-Finally, I decided to use two separate Kalman filters; each filter learns its
-separate variable. By splitting the filter into two, we can prevent non-zero
-covariance entries in the $P$ matrix which cause the oscillations seen in the 2D
-Kalman filter. This filter gave the most stable results while still being able
-to converge quickly.
-
-\section{Aggregation Pod}
+\section{Aggregation Server}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{images/pronto-agg.pdf}
+    \includegraphics[width=\textwidth]{images/pronto-agg.png}
+    \caption{How local models are aggregated in Pronto. Dedicated aggregator
+    nodes propagate the updated subspaces until the root is reached.}
+    \label{pronto-agg}
+\end{figure}
+Pronto aggregation approach is similar to the distributed agglomerative summary
+model (DASM) \cite{}. Local models are aggregated in a "bottom-up" approach
+following a tree-structure depicted in Figure \ref{pronto-agg}. While the
+this approach is stated to required minimal synchonisation, it requires
+mutliple dedicated Pods and Kubernetes inherent communication latency could
+result in a significant latency between a change in workload and the global
+model reflecting the change.
+
+Therefore, I decided to use a flat on-the-fly approach to aggregation: when the
+Aggregation Server receives an aggregation request with a Node's local model,
+rather than aggregating the model before returning the result, the server
+enqueues the model to be aggregated and returns its latest view of the
+aggregated model. This implementation trades consistency for latency.
+
+
+The Aggregation Server Pod
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/spazio-agg.pdf}
     \caption{Core components within the aggregator pod}
     \label{spazio-agg-components}
 \end{figure}
 
-As mentioned earlier in section \ref{sec:aggregation}, the aggregator trades
-consistency for latency and throughput. On aggregation request it returns the
+As mentioned earlier in section \ref{}, the aggregator trades
+. On aggregation request it returns the
 latest global model and enqueues the local model it received. Another worker
 thread running in the background dequeues local models and merges them into the
 global model.
@@ -343,7 +429,7 @@ which becomes a dominant factor when scaling to hundreds of nodes.
 \section{Scheduler Pod}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{images/pronto-sched.pdf}
+    \includegraphics[width=\textwidth]{images/spazio-sched.pdf}
     \caption{Core components within the central scheduler pod}
     \label{spazio-sched-components}
 \end{figure}
