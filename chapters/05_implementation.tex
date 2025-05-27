@@ -5,7 +5,7 @@
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{images/spazio-svg.pdf}
+    \includegraphics[width=\textwidth]{images/spazio-svg.png}
     \caption{The components within the Spazio system}
     \label{fig:spazio-system}
 \end{figure}
@@ -122,6 +122,7 @@ calculating $\pi$ to 2000 digits, we can see how the CPU utilisation correctly
 increases for that node while memory utilisation remains constant.
 
 \subsubsection{Issues of using CPU Utilisation}
+\label{sec:issue-with-util}
 While evaluating early versions of the prototype which only used utilisation
 metrics, its lackluster throughput compared to the default \verb|kube-scheduler|
 illuminated a problem of CPU utilisation. When deploying 1000 Pods, each
@@ -141,6 +142,8 @@ distribution of individual Pod completion times.
     values of \texttt{/proc/stat}, \texttt{/proc/meminfo} at 10Hz during various Kubernetes workload.}
     \label{fig:podcount-util-pressure}
 \end{figure}
+
+TODO: CHANGE THIS GRAPH TO JOB COMPLETION / POD COUNT
 
 As a result, I decided to further investigate this phenomenon. Figure
 \ref{fig:podcount-util-pressure} shows how a Job's completion time changes as you
@@ -221,9 +224,15 @@ overhead reduce the available resources to other Pods, it would be reflected by
 a lower signal, potentially reducing capacity a Node advertises.
 
 To check for a correct implementation of the signal, I measured the calculated
-signal when under the situations described in \ref{sec:capacity-signal}. The
-collected measuremets are shown in figures \ref{fig:signal-evaluation-cpu} and
-\ref{fig:signal-evaluation-mem}
+signal when under the situations described in
+\ref{sec:signal-example-scenario}. For the conflicting workload, I had the
+measured Node execute a light CPU-focused workload (\texttt{ng-stress --cpu=8
+--cpu-load=25}) with the surrounding Nodes executing a CPU-intense workload
+(\texttt{bpi(2000)}). For the complementary workload, the measured Node executed a
+light Memory-focused workload (\texttt{ng-stress --vm=4 --vm-bytes=4G}) with the
+surrounding Nodes also executing the same CPU-intense workload as in the
+conflicting scenario. The measured signals are shown in figures
+\ref{fig:signal-evaluation-cpu} and \ref{fig:signal-evaluation-mem}
 
 \begin{figure}[H]
     \centering
@@ -276,9 +285,10 @@ addition, I needed the method to be able to handle multiple pods being created
 and deleted at once.
 
 \subsubsection{Detecting Pod Events}
+\label{sec:listeners-comparison}
 There are numerous ways to detect the addition and removal of pods from a node.
-I investigated two: watching the Kubernetes API and watching the ContainerD
-events. The goals of the listeners were as follows:
+I investigated two approaches : watching the Kubernetes API and watching the
+ContainerD events. The goals of the listeners were as follows:
 \begin{itemize}
     \item Detect the creation and deletion of pods to establish a pod count
     \item Provide warning for potential container-caused churn
@@ -391,80 +401,57 @@ rather than aggregating the model before returning the result, the server
 enqueues the model to be aggregated and returns its latest view of the
 aggregated model. This implementation trades consistency for latency.
 
-
-The Aggregation Server Pod
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/spazio-agg.pdf}
-    \caption{Core components within the aggregator pod}
+    \caption{The components within the Aggregator Server.}
     \label{spazio-agg-components}
 \end{figure}
 
-As mentioned earlier in section \ref{}, the aggregator trades
-. On aggregation request it returns the
-latest global model and enqueues the local model it received. Another worker
-thread running in the background dequeues local models and merges them into the
-global model.
-
-Explain why I use a flat style aggregation rather than a hierarchical design.
-Core idea is the choice of efficiency and lateny vs consistency.
-
-The aggregation of local models to produce a global model also uses the same
-iterative-SVD as defined in section \ref{sec:local-model-construction}. In
-addition, instead of using a hierarchical aggregation system, I use flat
-aggregation service - all aggregation requests are handled by a single node.
-In the original Pronto paper, the authors assumed that there was no
-communication latency. However, in a real-world cluster this assumption does not
-hold. Adding additional aggregation layers would increase the overall aggregation
-latency.
-
-Instead with a aggregation server, I can reduce the overall latency of
-aggregation requests. To reduce request latency further, actual model
-aggregation is not performed on the request's critical path. On receipt, the local
-model is enqueued to be aggregated and the latest global model is returned. A
-background thread iterative-SVD merges the queued local models into the global
-model. In summary, this system trades consistency for latency and throughput,
-which becomes a dominant factor when scaling to hundreds of nodes.
+The Aggregation Server executes a thread which waits on a queue of local models
+to aggregate. When the queue is non-empty, the thread pops the local model and
+performs a Subspace Merge operation (as defined in \ref{sec:local-merge}). To
+prevent a single local-model from influencing the global model completely, it
+uses an $\alpha = \text{\# of Nodes} - 1, \beta = 1$. Aggregation clients perform
+a gRPC call to the address specified by the Aggregation Service. This gRPC
+function is implemented by the server and takes the local model of a Node as its
+argument. The function first enqueues the local model to be merged and returns
+the latest view of the global model. This has the clients themselves aggregate
+their local model with the received global model. By removing the aggregation of
+the model from the gRPC call's critical path, we reduce the work done by the
+Aggregation Server and allows the Server to handle more clients.
 
 \section{Scheduler Pod}
+\subsection{Kubernetes Scheduler Plugin}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{images/spazio-sched.pdf}
-    \caption{Core components within the central scheduler pod}
-    \label{spazio-sched-components}
+    \includegraphics[width=\textwidth]{images/scheduling-framework-extensions.png}
+    \caption{The available scheudling framework extension points
+    \cite{scheduling-framework}.}
+    \label{fig:kube-sched-framework}
 \end{figure}
+The scheduling framework (depicted in Figure \ref{fig:kube-sched-framework}) is
+a pluggable architecture for the Kubernetes scheduler. The scheduling framework
+defines a set of extension points, which scheduler plugins have to register to
+be invoked. A scheduler plugin can register to multiple extension points, with
+each extension point defining an interface: a set of functions the scheduler
+plugin has to implement.
 
-\subsection{Kubernetes Scheduler Plugin}
-This section gives the motivation for using a Kubernetes Plugin. Core Ideas:
-ease of use, access to efficient data structures.
+Implementing a Spazio-based scheduler plugin is much simpler than implementing a
+scheduler from scratch, while offering many performance benefits. Firstly, the
+scheduler operations defined in \ref{sec:spazio-cost-capacity} align with the
+extension points offered by the scheduling framework. Secondly, the scheduling
+framework gives me access to efficient data structures and algorithms designed
+by Kubernetes engineers. Finally, scheduling plugins provide another layer of
+customisability: you can selectively enable or disable default plugins, or
+define the order in which custom plugins run to augment the overall behaviour.
+This means that the Spazio plugin could be used in tandem with other plugins to
+improve scheduling decisions.
 
-I decided to implement the scheduling component as a Kubernetes Framework
-Plugin. The standard Kubernetes scheduler exposes a series of extension points,
-which allows users to define custom functions within the scheduling cycle. A
-Scheduler Plugin is a more favourable approach as it allows me to use an
-existing system designed to operate at an industrial level. The Pronto Plugin
-implements the following extension points:
-\begin{itemize}
-    \item: Filter - this function filters out any nodes based on $
-        \text{capacity available} - \text{capacity reserved} < \epsilon$.
-    \item Score - this function assigns a score based on the available capacity.
-        The greater the available capacity, the greater the score and thus the
-        more likely it is to be chosen for pod placement
-    \item Reserve - once a node is chosen to host the pod, the reserve function
-        records the pod's name and increments the node's reserved capacity.
-\end{itemize}
-
-This pod also has a Kubernetes API Pod Event listener which listens out for pods
-that have transitioned from the Pending status. For each event that this occurs,
-it checks if this pod was scheduled by the scheduler and decrements its value
-from reserved.
-
-
-\subsection{Filter}
-This section explains the Filter function
-
-\subsection{Score}
-This section explains the Score function
-
-\subsection{Reserve}
-This section explains the Reserve function
+To keep track of pod reservations, the Spazio scheduler uses a \verb|map| from
+Pods ID to Node ID and a Kubernetes API Pod Event
+Listener. On Reserve, the scheduler increments a Node's reserve quantity and
+stores a record in the \verb|map| with the Pod ID and the corresponding Node ID.
+The scheduler's API listener watches for any Pods that move from the 'Pending'
+status and if there exists a record within the \verb|map| with the Pod's ID, the
+corresponding Node's reserve quantity is decremented.

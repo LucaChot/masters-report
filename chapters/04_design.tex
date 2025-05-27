@@ -88,6 +88,7 @@ length representing higher resource usage will contribute more to the direction
 of the unit vector $x_i$.
 
 \section{Subspace Merging}
+\label{sec:local-merge}
 Given a new batch of samples $A'$, performing incremental-SVD to merge to get
 the new PCA. As every element in $A$ and $A'$ is [0,1] normalised, the maximised
 expression follows this property:
@@ -176,7 +177,7 @@ a_{2n} \\
     \text{Var}_i(\textbf{B}) \leq \max(\text{Var}_i(\textbf{A}),
     \text{Var}_i(\textbf{A}'))
 \end{align}
-However, by scaling the concatenated matrix using the method above, can upper
+However, scaling the concatenated matrix using the method above can upper
 and lower bound the growth of $\Sigma$. This also effectively behaves as an EMA,
 as each contribution of the previous sample is reduced by $\alpha / (\alpha +
 \beta)$.
@@ -190,7 +191,7 @@ within $\mathbf{U}$ will have either all positive or all negative values. This
 means that the other orthonormal vectors $u_2, \ldots, u_n$ will have at least
 one element that differs in sign from another. As a result, the remaining
 eigenvalues of $\mathbf{U}$ are not valide resource-usage directions: $\forall 1
-< i < n, k \neq 0: \exists j \in {1,\ldots,n} \text{such that} (ku_i)_j \le 0$.
+< i < n, k \neq 0: \exists j \in {1,\ldots,n} \text{ such that} (ku_i)_j \le 0$.
 As a result, only $u_1$ gives us a meaningful result: a weighted average of
 resource usage.
 
@@ -208,6 +209,44 @@ workload, we can scale $u_1$ by this distance to represent the size of expected
 workload. We could have also averaged the squared distance using
 $\sqrt{\sigma_1/b}$, but this would just scale $k$ for all nodes and not
 provide any more information.
+
+\subsection{Example Scenarios}
+\label{sec:signal-example-scenario}
+To better understand how this signal works, I will explore how the signal
+changes under different different loads. This scenarios will also be used to
+control the correctness of the signal implementation in the prototype.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/conflicting-workload.pdf}
+    \caption{Visualisations of a Node's resource usage $y$ and expected resource
+    usage $\sigma_1 u_1$ when learning of conflicting resource utilisation.}
+    \label{fig:conflicting-workload}
+\end{figure}
+
+Figure \ref{fig:conflicting-workload} presents the scenario where a Node updates
+its local model, learning that the experienced workload has increased in
+resource usage ($\sigma_1$ has increased). This means that a smaller constant
+$k$ is needed before the combined vectors cross a resource boundary. As a
+result, a Node advertises a smaller capacity signal as it has less capacity for
+the expected resource usage.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/complementary-workload.pdf}
+    \caption{Visualisations of a Node's resource usage $y$ and expected resource
+    usage $\sigma_1 u_1$ when learning of complementary resource utilisation.}
+    \label{fig:complementary-workload}
+\end{figure}
+
+Figure \ref{fig:complementary-workload} presents the scenario where a Node updates
+its local model, learning that the learned workload is using more resources but
+in a different direction. This could be described as a complementary workload as
+the the dot product of the current resource utilisation and the expected
+resource utilisation is much smaller. Therefore, a larger constant $k$ is needed
+to cross a resource boundary. This results in a Node advertising a higher
+capacity signal as it has more capacity for the new expected resource
+utilisation.
 
 \section{Reserve Cost and Capacity}
 \label{sec:spazio-cost-capacity}

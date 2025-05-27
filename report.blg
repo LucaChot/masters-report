@@ -17,45 +17,45 @@ Reallocated singl_function (elt_size=4) to 100 items from 50.
 Database file #1: report.bib
 Warning--I didn't find a database entry for ""
 Warning--empty year in intel-tas
-You've used 23 entries,
+You've used 24 entries,
             2616 wiz_defined-function locations,
-            701 strings with 8787 characters,
-and the built_in function-call counts, 6541 in all, are:
-= -- 637
-> -- 136
+            704 strings with 8906 characters,
+and the built_in function-call counts, 6761 in all, are:
+= -- 658
+> -- 138
 < -- 3
-+ -- 50
++ -- 51
 - -- 27
-* -- 218
-:= -- 693
-add.period$ -- 68
-call.type$ -- 23
-change.case$ -- 23
+* -- 221
+:= -- 710
+add.period$ -- 71
+call.type$ -- 24
+change.case$ -- 24
 chr.to.int$ -- 0
-cite$ -- 24
-duplicate$ -- 211
-empty$ -- 894
+cite$ -- 25
+duplicate$ -- 218
+empty$ -- 930
 format.name$ -- 27
-if$ -- 2010
+if$ -- 2084
 int.to.chr$ -- 0
-int.to.str$ -- 23
+int.to.str$ -- 24
 missing$ -- 6
-newline$ -- 116
+newline$ -- 121
 num.names$ -- 12
-pop$ -- 253
+pop$ -- 267
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 608
+skip$ -- 630
 stack$ -- 0
 substring$ -- 136
-swap$ -- 58
+swap$ -- 59
 text.length$ -- 9
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 1
 while$ -- 23
-width$ -- 25
-write$ -- 226
+width$ -- 26
+write$ -- 235
 (There were 2 warnings)
