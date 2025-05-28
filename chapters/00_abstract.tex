@@ -4,38 +4,39 @@ Kubernetes is an existing widely-used open-source container orchestration system
 that automates the deployment, scaling and management of containerized
 applications. Efficient scheduling is a critical component of Kubernetes,
 dictating an optimal allocation of pods across nodes to maximise a set of goals.
-Existing Kubernetes schedulers can be classified according to the input data
-they use to inform scheduling decisions: pod-description vs. telemetry. The
-performance of pod-description based schedulers relies on accurate workload
-estimations which is not always known beforehand. Meanwhile, telemetry-based
-schedulers use live information to maximise resource utilisation of nodes and
-prevent them from becoming overloaded. These telemetry-based schedulers
-typically use utilisation metrics which can be overly sensitive and generate
-false notifications of full capacity.
+Kubernetes schedulers generally fall into two categories: pod-descriptive and
+telemetric-based. Pod-descriptive schedulers, like the default
+\texttt{kube-scheduler}, rely on accurately defined Pod resource requests for
+optimal performance. In contrast, telemetric-based schedulers leverage collected
+Node metrics to identify under or over-utilized Nodes. While these are often
+used to refine decisions made by existing pod-descriptive schedulers, this
+dissertation focuses on exploring the potential of a telemetric-only scheduler.
 
-I decided to explore the application of the theory behind Pronto, a federated
-asynchronous memory-limited algorithm proposed for task-scheduling across
-large-scale networks of hundreds of workers, to scheduling within Kubernetes.
-Each individual node updates their own local model based on the workload seen so
-far (contention-based telemetry) and uses peak-prediction generate a rejection
-signal which reflects the overall node responsiveness and whether it can accept
-an incoming task. In addition, aggregating the local models builds a global view
-of the system. However, as the paper assumes no communication latency and spikes
-within a Kubernetes node's contention-based metric are not reflective of
-over-contention, peak-prediction is no longer an accurate indicator.
+Scheduling in Kubernetes without explicit Pod resource requests remains largely
+unexplored due to its complexity. Traditional bin-packing approaches are
+insufficient; instead, a telemetric-only scheduler requires a novel strategy to
+derive optimal plans from collected telemetry.
 
-As a result I propose a novel algorithm, Spazio\footnote{Spazio: space in
-Italian}, with the same properties of Pronto while also allowing the existance
-of communication latency. Nodes in Spazio update their local model with
-capacity-based metrics and score themselves according to their predicted
-capacity: how well a nodes current resource usage compliments recent measured
-workload. Furthermore, Spazio also utilises contention-based metrics to more
-accurately measure the resource capacity of a node.
+PRONTO offers a promising direction. This federated, asynchronous, and
+memory-limited algorithm schedules tasks across hundreds of workers. It enables
+individual workers to build local workload models from telemetry, which are then
+aggregated to form a global system view. For a telemetric-only scheduler,
+maximizing information aggregation is crucial. However, in very large clusters,
+centralizing all this data quickly becomes a bottleneck. By distributing the
+knowledge federation workload across the cluster, we can significantly reduce
+the load on a central scheduler.
 
-To evaluate Spazio, I implement a prototype of Spazio in Kubernetes, evaluating
-individual components to ensure correctness of behaviour. Finally, I compare
-Spazio against the industry-standard \verb|kube-scheduler| (the default
-scheduler of Kubernetes), evaluating Spazio's throughput and its
-quality-of-service (QoS). From the evaluation, I show how Spazio can achieve
-high workload-isolation, low latency while achieving comparable throughput
-compared to Kubernetes.
+Unfortunately, PRONTO's direct application to Kubernetes proved unfeasible due
+to its communication latency assumptions and early empirical findings.
+Consequently, I propose CARICO (Italian for "load"), a novel scheduler that
+shares PRONTO's core properties but accounts for communication latency. CARICO
+enables Nodes to perform FSVD on capacity-based metrics, modeling past resource
+usage to estimate future workload capacity.
+
+To evaluate CARICO, I implemented a prototype within the Kubernetes ecosystem.
+This involved extensive investigation into various metrics and filters to
+generate a precise capacity signal. Finally, I benchmarked CARICO's overall
+performance against the default kube-scheduler on a Kubernetes cluster with
+diverse workloads. While CARICO achieved comparable throughput, it significantly
+outperformed kube-scheduler as a QoS scheduler, demonstrating lower Pod
+Completion times and improved workload isolation.
