@@ -16,46 +16,45 @@ Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Database file #1: report.bib
 Warning--I didn't find a database entry for ""
-Warning--empty year in intel-tas
-You've used 24 entries,
+You've used 18 entries,
             2616 wiz_defined-function locations,
-            705 strings with 8934 characters,
-and the built_in function-call counts, 6761 in all, are:
-= -- 658
-> -- 138
-< -- 3
-+ -- 51
-- -- 27
-* -- 221
-:= -- 710
-add.period$ -- 71
-call.type$ -- 24
-change.case$ -- 24
+            674 strings with 7576 characters,
+and the built_in function-call counts, 4684 in all, are:
+= -- 452
+> -- 80
+< -- 1
++ -- 31
+- -- 13
+* -- 138
+:= -- 481
+add.period$ -- 52
+call.type$ -- 18
+change.case$ -- 18
 chr.to.int$ -- 0
-cite$ -- 25
-duplicate$ -- 218
-empty$ -- 930
-format.name$ -- 27
-if$ -- 2084
+cite$ -- 18
+duplicate$ -- 143
+empty$ -- 676
+format.name$ -- 13
+if$ -- 1468
 int.to.chr$ -- 0
-int.to.str$ -- 24
-missing$ -- 6
-newline$ -- 121
-num.names$ -- 12
-pop$ -- 267
+int.to.str$ -- 18
+missing$ -- 3
+newline$ -- 91
+num.names$ -- 8
+pop$ -- 206
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 630
+skip$ -- 449
 stack$ -- 0
-substring$ -- 136
-swap$ -- 59
-text.length$ -- 9
+substring$ -- 61
+swap$ -- 32
+text.length$ -- 7
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 1
-while$ -- 23
-width$ -- 26
-write$ -- 235
-(There were 2 warnings)
+warning$ -- 0
+while$ -- 13
+width$ -- 20
+write$ -- 173
+(There was 1 warning)

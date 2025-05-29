@@ -13,316 +13,210 @@
 % rest of the dissertation.
 %
 
-\section{Kubernetes Overview}
+In this Chapter, I explain how scheduling works in Kubernetes. I will then
+explain the concepts behind \textsc{Pronto}, as well as the reasons for exploring
+\textsc{Pronto}'s application in Kubernetes. I will also describe related Kubernetes
+schedulers. Finally, I will discuss the effectiveness of applying \textsc{Pronto}'s
+algorithm within a Kubernetes system.
+
+\section{Kubernetes}
+
+\subsection{Kubernetes Overview}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/components-of-kubernetes.pdf}
-    \caption{The components of a Kubernetes cluster. \textbf{Source:}
+    \caption{The components of a Kubernetes cluster
     \cite{kubernetes-components}}
     \label{kube-components}
 \end{figure}
 
-A Kubernetes cluster consists of a control plane and one or more worker nodes.
+A Kubernetes cluster consists of a control plane and one or more worker Nodes.
 Components in the control plane manage the overall state of the cluster. The
 \verb|kube-apiserver| exposes the Kubernetes HTTP API, which is used to publish
-objects such as Deployments, DaemonSets and Jobs. The \verb|kube-server| looks
-for pods not yet bound to a pod, and assigns each Pod to a suitable node. Each
-node in the cluster contains a set of components which maintain the running pods
-and provide the Kubernetes runtime environment. \verb|kubelet| manages Pods and
-ensures they and their containers are running. The \verb|kubelet| uses a
-container runtime: software responsible for running containers.
+objects such as Deployments, DaemonSets and Jobs. Each
+Node in the cluster contains a \verb|kubelet| which manages Pods and ensures
+they and their containers are running via a container runtime.
 
 Kubernetes objects are persistent entities in the Kubernetes system. They act as
-"records of intent" and describe the cluster's desired state: once created, the
+``records of intent" and describe the cluster's desired state: once created, the
 Kubernetes system will constantly work to ensure that the objects exists. The
-Kubernetes API is used to create, modify or delete Kubernetes objects. Almost
+Kubernetes API is used to create, modify or delete these Kubernetes objects. Almost
 every Kubernetes object includes two fields: \verb|spec| and \verb|status|.
-\verb|spec| is used on creation as a description of the characteristics you want
-the resource to have, while \verb|status| describes the current state of the
-object, supplied and updated by the Kubernetes system. These fields are crucial
-for scheduling pods as they behave like resource constraints, with which the
-Kubernetes schedulers can use to determine optimal pod placement.
+\verb|spec| is used on creation as a description of the Objects desired state.
+You can define affinities and QoS classes within this field. Containers also
+contain a \verb|spec| field which specifies \verb|request| and
+\verb|limits|. The \texttt{request} field behaves as a set of minimum
+requirements and is used when scheduling Pods. In contrast, the \texttt{limits}
+field is used by kernel of the Node to throttle a container's resource usage.
+\verb|status| describes the current state of the object, supplied and updated by
+the Kubernetes system. These fields are core to scheduling in Kubernetes.
 
-\section{Scheduling in Kubernetes}
+\subsection{Scheduling in Kubernetes}
 In Kubernetes, Pods are the smallest deployable units of computing that you can
 create and manage in Kubernetes. It represents a single instance of a running
 process in your cluster and typically contains one or more containers that are
 tightly coupled and share resources. Pods can be individually created with their
-own Yaml files. However, the Kubernetes API also provides workload objects to manage
-multiple pods: these objects repressent a higher abstraction level than a Pod,
-and the Kubernetes control plane uses the workload's specification to manage Pod
-objects on your behalf. The built-in APIs for managing workloads include
-Deployment, StatefulSet, DaemonSet and Job.
+own Yaml files. However, the Kubernetes API also provides workload objects to
+manage multiple pods: these objects represent a higher abstraction level than a
+Pod, and the Kubernetes control plane uses the workload's specification to
+manage Pod objects on your behalf. Example workloads include Deployment,
+StatefulSet, DaemonSet and Job.
 
-When a Pod is created, it initially exists in a "Pending" state - it has been
-declared by hasn't been allocated to a Node. Kubernetes schedulers watch for
-newly created Pods that have yet been assigned to a Node, and based on a set of
+When a Pod is created, it initially exists in a ``Pending" state - it has been
+declared but hasn't yet been allocated to a Node. Kubernetes schedulers watch for
+newly created but unassigned Pods, and based on a set of
 rules or algorithms, select the most suitable Node for that Pod. Once a Node is
-chosen, the scheduler "binds" the Pod to the Node, updating the Pod's definition
+chosen, the scheduler ``binds" the Pod to the Node, updating the Pod's definition
 in the Kubernetes API server by setting its \verb|spec.nodeName| field to the
-name of the Node. Once this occures, the Pod transitions from "Pending" to
-"Running".
+name of the Node. Once this occures, the Pod transitions from ``Pending" to
+``Running".
 
-\section{Analysis of Scheduling Approaches and QoS-Aware Trends}
-Different Kubernetes schedulers take varied approaches to Pod placement, from
-simple heuristics to global optimisations and machine learning. This diversity
-reflects the wide range of workload requirements and cluster scales seen in
-practice. In the following subsections, we compare how different schedulers
-leverage different data inputs for decision-making, which fundamentally
-influences their scheduling strategy and resulting quality of service (QoS) for
-workloads.
+\section{\protect\textsc{Pronto}}
 
-\subsection{Pod Spec-Only Scheduling vs Telemetry-Aware Scheduling}
+\subsection{Principle Component Analysis}
+This section first explains Singular Value Decomposition (SVD) and how it
+relates to solutions of Principal Component Analysis (PCA). I then introduce
+Incremental-SVD and Subspace-Merge, which are used to perform FPCA on the stream
+of telemetry produced by each Node.
 
-\textbf{Pod Description-Based schedulers} rely solely on the information
-declared in the pod specification and cluster configuration (static data). The
-default Kubernetes scheduler \cite{kube-scheduler} and similar schedulers like
-Yunikorn \cite{cloudera_yunikorn_2019} or Volcano \cite{volcano_introduction}
-fall in this category. They consider factors such as requested CPU/memory,
-labels and selectors, affinity/anti-affinity rules, and priority. This approach
-is more reliable for ensuring that the declared needs of a pod are met. For
-example, a pod will only be placed on a node that has enough free capacity
-according to a resource requests, and it will honour policies like zone
-spreading or node affinity.
+\subsection{Singular Value Decomposition}
+The SVF of a real matrix $\mathbf{A}$ with $m$ rows and $n$ columns where $m
+\geq n$ is defines as $\mathbf{A} = \mathbf{U}\Sigma\mathbf{V}^T$, where $U$ and
+$V$ are orthogonal matrices of shape $m \times m$ and $n \times n$ and $\Sigma$
+is a rectangular matrix of shape $m \times n$ with singular values $\sigma_i$
+along its diagonal \cite{}.
+\begin{align}
+\mathbf{A} = \begin{bmatrix} a_{11} & \dots & a_{1n} \\ \vdots & \ddots & \vdots
+    \\ a_{m1} & \dots & a_{mn} \end{bmatrix} = \begin{bmatrix} \mid \\ u_1 \\
+        \mid \end{bmatrix} \dots \begin{bmatrix} \mid \\ u_m \\ \mid
+            \end{bmatrix} \begin{bmatrix} \sigma_1 & & \\ & \ddots & \\ & &
+                \sigma_m \\ & 0 & \\ & & \\ & & 0 \end{bmatrix} \begin{bmatrix}
+\text{---} & v_1^T & \text{---} \\ \vdots \\ \text{---} & v_m^T & \text{---} \\
+\text{---} & v_{m+1}^T & \text{---} \\ \vdots \\ \text{---} & v_n^T & \text{---}
+\end{bmatrix}
+\end{align}
 
-Benefits of this method are predictability and simplicity: by using static
-reservations, the scheduler guarantees that if every pod accurately requests
-its needs, no node will be over-committed at scheduling time. This can protect
-critical workloads by giving them guaranteed resources (as in Kubernetes
-Guaranteed QoS class). It also enables fairness policies at high level (e.g.
-Yunikorn's queues and priorities ensure no team monopolises the cluster).
+SVD can also be written compactly by discarding the elements which do not
+contribute to $\mathbf{A}$.
+\begin{align}
+\mathbf{A} = \begin{bmatrix} \mid \\ u_1 \\ \mid \end{bmatrix} \dots
+    \begin{bmatrix} \mid \\ u_m \\ \mid \end{bmatrix} \begin{bmatrix} \sigma_1 &
+        & \\ & \ddots & \\ & & \sigma_m \end{bmatrix} \begin{bmatrix} \text{---}
+& v_1^T & \text{---} \\ & \vdots & \\ \text{---} & v_m^T & \text{---}
+\end{bmatrix}
+\end{align}
 
-However, the downside is a lack of visibility into actual runtime conditions -
-the scheduler is blind to fluctuations in load or hardware state. As a result,
-static-only scheduling may lead to less optimal placements: for instance, a new
-pod might be placed on a node that technically has room (per requests) but is
-currently experience high CPU utilisation from other processes, leading to
-contention. Meanwhile, an underutilised node could be ignored because its
-capacity appears full due to over-requested resources or sticky allocations. In
-summary, purely \verb|spec|-based scheduling treats the cluster as a static
-partitioning of resources; it ensures each workload's declared needs are met, but
-it can't respond to real-time performance variations.
+There always exists the SVD for a real matrix, but the decomposition is not
+unique: if $\mathbf{A} = \mathbf{U}_1\Sigma\mathbf{V}_1^T =
+\mathbf{U}_2\Sigma\mathbf{V}_2^T$ then $\Sigma_1 = \Sigma_2$ but $\mathbf{U}_1 =
+\mathbf{U}_2\mathbf{B}_a$ and $\mathbf{V}_1 = \mathbf{V}_2\mathbf{B}_b$ for some
+block diagonal unitary matrices $\mathbf{B}_a, \mathbf{B}_b$ \cite{}. Each
+column in $\mathbf{U}$ and $\mathbf{V}$ is an eignenvector of
+$\mathbf{AA}^T$ and $\mathbf{A}^T\mathbf{A}$.
 
-\textbf{Telemetry-Based schedulers}, incorporate live metrics and feedback from
-the cluster's current state to make more informed decisions. These schedulers
-actively monitor CPU usage, memory pressure, I/O rates, cache misses, network
-latency, etc., either via the Kubernetes Metrics APU, Prometheus, or custom
-telemetry pipelines. Examples include Intel's Telemetry Aware Scheduling \cite{intel-tas}
-(which uses fine-grained platform metrics like LLC cache hit rates and CPU
-temperature) and the Trimaran plugin suite for Kubernetes \cite{trimaran} that uses
-real-time utilisation stats.
+\subsection{Principal Component Analysis}
+Pricipal Component Analysis is a staple of linear dimensionality-reduction
+techniques. The standard PCA procedure takes as input a matrix $\mathbf{B}$
+representing $n$ columns of data with $m$ dimensions. The matrix is first
+mean-centered: $\mathbf{A}_{ij} = (\mathbf{B}_{ij} - \mu_i)$ where $\mu_i$ is
+the mean of the row $i$. The output of PCA is a set of vectors that explain most
+of the variance within $\mathbf{B}$. Given the covariance of a matrix
+$\mathbf{A}$ is given as $\mathbf{AA}^T$ the Principal Components (PCs) maximise
+the following equation:
+\begin{align}
+\text{Var}_i = \max_{\substack{x_i \in \mathbb{R}^m \setminus \{\mathbf{0}\} \\
+    \|x_i\|=1 \\ x_i \perp x_1 \dots x_{i-1}}} x_i^T \mathbf{A} \mathbf{A}^T x_i
+\end{align}
 
-By using this data, telemetry-driven scheduling can avoid placing pods on nodes
-that are struggling or overloaded in real-time. For instance, a telemetry-aware
-scheduler might detect that Node A's CPU is 90\% busy and Node B's is 20\% and
-therefore prefer Node B for a new pod - even if, by static allocation, both
-nodes had equal allocable capacity remaining. This dynamic adaptability
-directly improves QoS: workloads get more stable performance because they are
-less likely to be scheduled to an over-taxed machine. Moreover, telemetry-based
-rules can target specific QoS concerns: Intel's TAS can steer latency-sensitive
-network functions away from nodes with high cache thrashing, preventing
-unpredictable latency spikes \cite{intel-tas}. The benefits of telemetry awareness is
-higher efficiency and resiliency - clusters can run closer to their true capacity
-(Trimaran's TargetLoadPacking can pack workloads until it observes
-near-saturation) but back off when needed to maintain performance. It also helps
-in maintaining SLAs by reacting to early warning signals before they become
-failures.
+Given $\mathbf{A} = \mathbf{U}\Sigma\mathbf{V}^T$ from SVD,
+$\mathbf{AA}^T = \mathbf{U}\Sigma\mathbf{V}^T\mathbf{V}\Sigma\mathbf{U}^T =
+\mathbf{U}\Sigma^2\mathbf{U}^T$. Therefore, it can be shown that the PCs
+$x_i = u_i$ from $\mathbf{U}$. The pair $\mathbf{U}, \Sigma$ will also be
+referred to as a subspace as they provide sufficient information to describe the
+orginal $\mathbf{B}$ matrix.
 
-The challenge, however, is complexity: collecting and reacting to metrics adds
-overhead and potential instability (the scheduler decisions are now as dynamic
-as the metrics themselves). Careful design is required to smooth out decisions.
-telemetry-based scheduling brings an automated, feedback-driven approach that
-can greatly boost performance and utilisation, but it must be tuned to avoid
-thrashing and to scale metric collection overhead.
+\subsection{Subspace-Merge}
+Subspace-Merge is used to merge two subspaces together. Given two subsets
+$(\mathbf{U}_1, \Sigma)$ and $(\mathbf{U}_1, \Sigma)$ from $\mathbf{Y}_1$ and
+$\mathbf{Y}_2$ respectively, the subspace of $\mathbf{Y} = [\mathbf{Y}_1,
+\mathbf{Y}_2]$ is:
+\begin{align}
+    \mathbf{U}\Sigma = \text{SVD}([\mathbf{U}_1\Sigma_1, \mathbf{U}_2\Sigma_2])
+\end{align}
+$[\mathbf{A}, \mathbf{B}]$ signifies the concatenation of two matrices with the
+same number of rows.
 
-\textbf{Hybrid Approaches} combine both static pod descriptions and dynamic
-telemetry to get the best of both worlds: guarantee the fundamental resource
-requests/constraints from pod specs while using telemetry to fine-tune the
-choice among feasible nodes. For example, Firmament (via Poseidon)
-\cite{gog_firmament_2016, poseidon} respects each pod's requirements, but when
-multiple multiple pods are viable it uses a global optimisation incorporating
-utilisation metrics to choose the optimal placement. Koordinator
-\cite{netto_koordinator_2018} similarly uses class-based static partitioning
-(dedicating some portion of resources or priorities to LC vs. best-effort pods)
-and then uses live node feedback to adjust placements and even migrate
-workloads at runtime. By blending static and dynamic data, hybrid scheduling
-strategies can enforce high-level policies (like fairness, or priority), and
-ensure those policies aren't undermined by unforeseen runtime conditions. The
-outcome is often superior QoS in multiple dimensions, but come at the cost of
-the most complexity.
+\subsection{Incremental-SVD}
+Incremental-SVD allows \textsc{Pronto} to become a streaming algorithm with limited
+memory. It takes a stream of chunks $\mathbf{Y}_i$, such that  $[\mathbf{Y}_1,
+\ldots, \mathbf{Y}_l] = \mathbf{Y}$, and with each recieved chunk it performs
+Subspace-Merge to produce $\mathbf{U}_l, \Sigma_l$ where $\mathbf{Y} =
+\mathbf{U}_l\Sigma_l\mathbf{V}_l^T$
 
-\subsection{Impact on QoS (Latency, Throughput, Fairness)}
-The choice of data inputs in scheduling directly impacts various QoS metrics:
+\begin{algorithm}
+\caption{Incremental-SVD}
+\textbf{Data:} $\mathbf{Y} = [\mathbf{Y}_1, \dots, \mathbf{Y}_l]$ \\
+    \textbf{Result:} $\mathbf{U}_l, \Sigma_l$ such that $\mathbf{Y} =
+    \mathbf{U}\Sigma\mathbf{V}^T$
+\begin{algorithmic}
+\State $\mathbf{U}_1, \Sigma_1, \mathbf{V}_1^T = \text{SVD}(\mathbf{Y}_1)$
+\For {$i = 2$ to $l$ do}
+\State $\mathbf{U}_i, \Sigma_i, \mathbf{V}_i^T = \text{SVD}([\mathbf{U}_{i-1}\Sigma_{i-1}, \mathbf{Y}_i])$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+If the shape of the batches of data is $m \times b$, the space complexity of
+Iterative-SVD is $\mathbb{O}(m^2 + mb)$ as only the latest version of
+$\mathbf{U}_i,\Sigma_i$ and $\mathbf{Y}_i$ are needed for each iteration.
 
-\textbf{Latency and Response Time:} Schedulers that can account for real-time
-load significantly reduce latency for individual requests. A telemetry-aware
-scheduler will avoid placing a latency-critical pod onto a node with high CPU or
-IO wait, thereby ensuring that the pod can get CPU time quickly. In contrast, a
-purely static scheduler might inadvertently co-locate many heavy pods on the same
-node (if their requests were low but actual usage is high), leading to
-contention and higher latency for all pods there. Thus telemetry-driven or
-hybrid scheduling is better for meeting low-latency SLAs.
+\subsection{FPCA and FSVD}
+FPCA combines the relationship between standard SVD and PCA with the
+Subspace-Merge operation, to calculate the PCs of the data $[\mathbf{Y}_1,
+\ldots,\mathbf{Y}_m]$ from $m$ nodes. Every node $i$ performs perform SVD  on
+their local data, to produce the subspace $\mathbf{U}_i, \Sigma_i$. These
+subspaces can be merged using at most $m-1$ Subspace-Merges to obtain the global
+subspace $\mathbf{U}'\Sigma'$, corresponding to the PCs of the aggregated data
+from all the nodes. \textsc{Pronto} turns this procedure into a streaming algorithm, by
+running Subspace-Merge on the subspaces produced by incremental-SVD. Finally,
+\textsc{Pronto} also introduces a forgetting factor $\gamma$ in front of
+$\mathbf{U}_i\Sigma_i$ in Incremental-SVD that gradually reduces the influence
+of previous subspaces. Like with standard PCA, FPCA can be considered as FSVD on
+centered data.
 
-\textbf{Throughput and Completion Time:} For batch workloads, scheduling
-strategies affects job completion times and overall throughput of the cluster.
-Volcano's \cite{volcano_introduction} gang scheduling ensures all tasks of a
-parallel job start together so the job can finish as quickly as possible with
-no stragglers waiting for resources. This improves throughput of a batch
-workload and avoids resource waste. Similarly, a scheduler using telemetry can
-balance load by preventing certain nodes from becoming bottlenecks. However,
-using utilisation metrics does not always guarantee optimal throughput. For
-example, when 5 pods are running on a node, the node may advertise 100\% CPU
-usage. When running an additional pod, CPU utilisation will remain at 100\% but
-the resulting pod completion times may increase sub-linearly with the number of
-pods and thus result in higher-throughput. This example highlights how
-utilisation metrics can be misleading when detecting pod contention.
+\subsection{Low-Rank Approximations}
+It can be shown that using the first $r$ eignenvectors in the above algorithms
+approximate the result of using all $m$ eignenvectors, i.e. if
+\begin{align}
+\mathbf{Y} = \begin{bmatrix} \mid & & \mid \\ u_1 & \ldots & u_m
+    \\ \mid & & \mid  \end{bmatrix} \begin{bmatrix} \sigma_1 &
+        & \\ & \ddots & \\ & & \sigma_m \end{bmatrix} \begin{bmatrix} \text{---}
+& v_1^T & \text{---} \\ & \vdots & \\ \text{---} & v_m^T & \text{---}
+\end{bmatrix}
+\end{align}
+We can use $\mathbf{U}^r = \begin{bmatrix} \mid & & \mid \\ u_1 & \ldots & u_r
+    \\ \mid & & \mid  \end{bmatrix}$ and $\mathbf{\Sigma}^r = \begin{bmatrix}
+\sigma_1 & & \\ & \ddots & \\ & & \sigma_r \end{bmatrix}$ where $r \leq m$ in
+Incremental-SVD and Subspace-Merge. This lets \textsc{Pronto} reduce the number of
+computations it performs and its memory usage.
 
-\textbf{Fairness and Resource Isolation:} Fairness can be considered from
-multi-tenant perspectives (each user gets a fair share) and from a workload
-isolation perspective (no noisy neighbour dominates a node to the detriment of
-others). Pod spec schedulers address the former via quotas, priority classes,
-etc., and the latter only indirectly (e,g, by requiring all pods to declare
-resources, which if done correctly prevents one pod from consuming what another
-needs). Telemetry-based approaches tackle isolation by detecting noisy-neighbour
-effects - for instance, Koordinator monitors interference metrics and will
-separate batch jobs from latency-senesitive ones if the interference crosses a
-threshold.
+\subsection{\protect\textsc{Pronto} System Overview}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/pronto-agg.png}
+    \caption{How local models are aggregated in \textsc{Pronto}. Dedicated aggregator
+    nodes propagate the updated subspaces until the root is reached
+    \cite{grammenos_pronto_2021}.}
+    \label{pronto-agg}
+\end{figure}
+There are two types of nodes in \textsc{Pronto}: compute node (C) and aggregator node
+(A). Compute nodes collect and center node statistics (i.e. CPU and Memory) and
+perform Incremental-SVD to obtain the low rank approximations of the local
+subspace $\mathbf{U},\Sigma$. The aggregator nodes before Subspace-Merge on
+incoming subspaces, with subspace produced by the root aggregator node being
+propagated back to the compute nodes.
 
-\textbf{Resource Utilisation:} Spec-only scheduling often relies on
-over-requesting (adding safety margins to resource requests) which can leave
-nodes underused. Therefore, these schedulers might not be able to
-completely use all of a node's capacity because they can't safely pack workloads
-beyond the declared request. If a user under-requests, it can lead to CPU
-throttling and OOM kills and degrade application QoS. On the other hand,
-telemetry-aware scheduler can confidently increase utilisation up to a safe
-limits - for example, Trimaran's TargetLoadPacking will keep filling a node
-until it observes the node is about to hit a predefined utilisation limit.
-
-DO I NEED TO INCLUDE CITATIONS FOR SYSTEMS I HAVE ALREADY REFERENCED
-
-% \section{kube-scheduler (Default Kubernetes Scheduler)}
-% \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Default Kubernetes
-% Scheduler:} {\em Kube-scheduler selects an optimal node to run newly created or
-% not yet scheduled pods. The description of containers in pods - and pods
-% themselves - contain a set of predetermined requirements which the scheduler
-% uses to influence its decisions. This makes the Kube-scheduler constraint-based
-% (bin-packing). The Kube-scheduler selects a node for the pod in a 2-step
-% operation: Filtering and Scoring. The filtering step finds the set of Nodes
-% where its feasible to schedule the Pod, after which scoring is performed on the
-% remaining nodes to identify the most suitable Pod placement. The highest ranking
-% Node is chosen, with tiebreaks choosing at random.
-%
-% Having access to pod requirements simplifies scheduling logic to bin-packing,
-% and allows the kube-scheduler to use simple greedy algorithms: filtering and
-% scoring. However, knowing exact pod requirements is often not feasible,
-% especially when pods behaviour can change during runtime. Kubernetes uses two
-% sets of values when declaring pod resource usage: \verb|resources.requests| and
-% \verb|resources.limits|. The values in \verb|resources.requests| are used in
-% scheduling decisions and determine the amount of capacity a pod reserves on a
-% node when it is bound to it. If a node has enough resources available, it is
-% possible for a container to use more resources than its request specified.
-% However, if specified, \verb|resource.limits| are applied by the kubelet and
-% enforced by the kernel, throttling the container if it a container or pod
-% exceedds its limits.
-%
-% Identifying the optimal values for the requests and limits is difficult and can
-% result in resource underutilisation or resource starvation.
-%
-% TODO: SHOULD I INCLUDE A FIGURE WITH EXAMPLE WORKLOADS WHERE THIS MAY OCCUR?
-% }  \end{tcolorbox}
-%
-% \section{Stand-alone Kubernetes Schedulers}
-% \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Stand-alone
-% Kubernetes Schedulers:} {\em In this chapter I will explore schedulers than have
-% their own binary and do not extend the kubernetes scheduler. I will try to
-% classify these schedulers into different classes and include strengths and
-% weaknesses. I will focus on how each scheduler handles resource contention and
-% QoS.}  \end{tcolorbox}
-%
-%
-% \subsection{Framework Schedulers}
-% \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Framework
-% Schedulers:} {\em In this chapter I will explore schedulers that use the
-% Kubernetes Framework to extend its behaviour. I will try to classify these
-% schedulers into different classes and include strengths and weaknesses. I will
-% focus on how each scheduler handles resource contention and QoS.}
-% \end{tcolorbox}
-%
-
-\subsection{Telemetry-Only Scheduling in Kubernetes}
-TODO: EXPLAIN HOW NO OTHER SCHEDULER THAT ONLY USES TELEMTRIC DATA EXISTS IN
-KUBERNETES, THE REST ONLY AIM TO AUGMENT OR OPTIMISE THE EXISTING DECISIONS FROM THE SCHEDULER
-
-\subsection{Summary of Related Work}
-The earlier survey compared how existing Kubernetes schedulers used two
-difference classes of input data - static pod information and telemetry - to
-guide their scheduling decisions. Pod description-based scheduling ensures that
-fundamental resource guarantees are respected. Telemetry-based scheduling can
-more precisely allocate pods to nodes at the cost of increased complexity.
-Hybrid schedulers combine these methods to provide guarantees of fundamental
-resource requests while fine tuning scheduling decisions. However, their
-reliance on predefined pod requirements still limits the QoS they can achieve.
-Without careful consideration and engineering, erroneous pod resource requests
-can result in under-utilisation or high resource contention.
-
-
-\section{Serverless Workloads and Schedulers}
-\begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Serverless
-    Workloads:} {\em This section I will introduce the concept of serverless
-    functions and how it is growing industry: adapted in multiple cloud
-    services. Explain the typical workloads: resources, duration and actions.
-Explain why containers are perfect for these workloads due to their fast start
-up time compared to booting up VMs.
-
-In this section I will also review existing
-    Serverless schedulers. I will consider what type of scheduling information
-    these schedulers will use and whether these schedulers consider very short
-    workloads such as less than 4 minutes
-}  \end{tcolorbox}
-
-\section{Shortcomings of Common Telemetric Data}
-
-Many telemetry-aware Kubernetes schedulers \cite{trimaran,
-netto_koordinator_2018, gog_firmament_2016, poseidon} use utilisation
-statistics, such as \% CPU used, \% memory used, as these metrics are available
-in most computer systems and can be efficiently collected. While they are easy
-to process, high values do not always signify over-contention. During the
-implementation of the Spazio prototype, I investigate how CPU Utilisation
-corresponds to Job Completion time. From the investigation, figure
-\ref{fig:podcount-util-pressure} shows that throughput continues to increase as
-we increase the number of concurrently running pods even after CPU utilisation
-reaches 100\%. Therefore I conclude that CPU utilisations is not representative
-of the true CPU capacity. \textbf{I only investigated this on my cluster of
-VMs. This may just be a property of VM machines}.
-
-Few Kubernetes schedulers use deeper contention indicators (e.g. cache pressure,
-memory pressure and CPU throttling) \cite{intel-tas, netto_koordinator_2018}. I believe
-that metrics can be used to better inform scheduling decisions compared to the
-standard utilisation metrics.
-
-\section{Pronto}
-Pronto is a federated asynchronous, memory-limited algorithm proposed for
-online task-scheduling across large-scale networks of hundreds of workers. Each
-individual node updates a local model based on telemetric data and generates a
-rejection signal which reflects the overall node responsiveness and whether it
-can accept an incoming task. In addition, aggregation is performed on the local
-models to build a global view of the system. Pronto takes the existing CPU Ready
-metric generated by the VMware vSphere and proposes a novel method that uses it
-as a task scheduling predictor. I believe that Pronto's use of contention
-indicators and federation of individual node models can be used to implement a
-telemetric-based QoS scheduler.
-
-% \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm] \textbf{Pronto:} {\em In
-% this section I will give a brief overview of Pronto. I will mention how it is an
-% online system that uses real-time data to build local model on individual nodes.
-% I will also include that due to the nature of the models, local models can be
-% aggregated into a more holistic global model, allowing for faster node
-% bootstrappng and making more informed decisions.} \end{tcolorbox}
-
-\subsection{Overview}
-\label{pronto-overview}
-
+\subsection{\protect\textsc{Pronto} Reject-Job Signal}
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/pronto}
@@ -334,52 +228,24 @@ telemetric-based QoS scheduler.
     \label{pronto-components}
 \end{figure}
 
-PCA is a powerful dimensionality reduction technique, used to simplify
-complex, high-dimensional datasets while retaining the most information. Pronto
-use Federated PCA (a privacy preserving distributed approach to PCA) to extract
-features which represent the "directions" with greatest variance. Pronto can
-then project telemetry data onto these vector directions to predict future
-spikes which indicate resource contention.
+Each compute node projects their data onto the latest version of $\textbf{U}$,
+and identifies all the spikes. If the weighed sum of these spikes, using the
+corresponding singular values in $\Sigma$, exceeds a threshold, a rejection
+signal is raised to indicate that the node is potentially experiencing
+performance degradation and a job should not be scheduled on that node.
 
-Pronto makes use of the following property: The PCA of a matrix can be
-calculated by mean centering the data, performing SVD on the resulting matrix to
-give $U$, the directions of the principle components, and $\Sigma$ the variance
-along these directions. As Pronto aims to be memory-limited, it can't store all
-of the collected telemetry and must instead take a streaming approach. It
-periodically measures the CPU Ready metric at a given frequency. To perform
-FPCA, every new batch of $b$ samples is iteratively merged into the latest
-subspace using Incremental-SVD. In addition, to perform global model
-aggregation, SVD is performed on the concatenated bases of two local models.
-Pronto can further reduce the required computation by using Low-Rank
-approximations, reducing the dimensionality to $r$ where $r < m$. It uses the
-assumption that the first $r$ eignenvalues contain the majority of the
-information of the dataset.
+\subsection{Strengths}
+\textsc{Pronto}'s ability to accurately predicting spikes in traces from real-world
+datacenters was compared against non-distributed dimensionality-reduction
+methods \cite{}, \textsc{Pronto}'s improved performance over the non-distributed
+strategies implies that there were correlations between job's resource usages on
+different nodes at the same point in time. This suggested that FPCA could use
+telemetry across multiple nodes to more acurrately compute the principle
+components and thus could more accurately predict performance degradation.
+These results also indicated a potential benefit from applying \textsc{Pronto} to a
+Kubernetes environment.
 
-Once a node has a local model, it can periodically generate a signal by
-projecting the latest telemetry data onto the principle component subspace $U$
-and identifies all the spikes in the projections. If the weighted sum of the
-spikes exceeds a threshold, then a rejection signal is raised which indicates
-that node is experiencing performance problems and a job should not be
-scheduled.
-
-\subsection{Evaluation}
-
-In the Pronto paper, a scheduler's effectiveness was quantified by its ability
-to raise a rejection signal that precedes a CPU-Ready spike within a pre-defined
-window, while minimising the number of false positives that do not precede
-CPU-Ready spikes. Protono was compared against non-distributed
-dimensionality-reduction methods \cite{}, and was shown to predict CPU-Ready
-signals effectively while keeping false-positives low. Pronto's better
-performance over non-distributed strategies implies that there were correlations
-between job's resource usages on different nodes at the same point in time. As a
-result, FPCA could use telemetry across multiple nodes to more acurrately
-compute the principle components and thus give better CPU-Ready predictions.
-
-These properties make Pronto an attractive technique that could be incorporated
-into scheduling within a Kubernetes cluster.
-
-\subsection{Limitations}
-
+\subsection{Weaknesses}
 \subsubsection{Assumptions}
 The Pronto paper only provides a method with which to measure node
 "responsiveness" to future workloads. However, it does not include an allocation
@@ -450,7 +316,7 @@ must exhibit spikes during high-resource contention. To investigate the
 feasibility of peak prediction within a Kubernetes node using PSI metrics, I
 polled the \verb|/proc/pressure| files of nodes when under different workloads.
 
-\begin{figure}[H]
+\begin{figure}[htbp!]
     \centering
     \includegraphics[width=0.48\textwidth]{images/pressure-baseline.png}
     \includegraphics[width=0.48\textwidth]{images/pressure-single.png} \\
@@ -468,7 +334,7 @@ container runtime, in this case Containerd, using resource to create or delete
 the containers of the pods.
 
 The PSI metrics also expose an average over the last 10 seconds.
-\begin{figure}[H]
+\begin{figure}[htbp!]
     \centering
     \includegraphics[width=0.48\textwidth]{images/avg-pressure-baseline.png}
     \includegraphics[width=0.48\textwidth]{images/avg-pressure-single.png} \\
@@ -507,6 +373,30 @@ that peak-prediction with sub-second polling is not feasible within Kubernetes.
 % reduce the rate at which pods are assigned to nodes and could result in lower
 % throughput.
 %
+
+
+\section{Related Work}
+In this section, I explore the existing Kubernetes scheduler space, identifying
+those that share properties with \textsc{Pronto} and highlighting their strengths and
+weaknesses.
+
+\subsection{Telemetric-based Schedulers}
+
+\subsection{Federated Schedulers}
+
+\subsection{Reinforcement Learning Schedulers}
+
+\subsection{Summary of Related Work}
+The earlier survey compared how existing Kubernetes schedulers used two
+difference classes of input data - static pod information and telemetry - to
+guide their scheduling decisions. Pod description-based scheduling ensures that
+fundamental resource guarantees are respected. Telemetry-based scheduling can
+more precisely allocate pods to nodes at the cost of increased complexity.
+Hybrid schedulers combine these methods to provide guarantees of fundamental
+resource requests while fine tuning scheduling decisions. However, their
+reliance on predefined pod requirements still limits the QoS they can achieve.
+Without careful consideration and engineering, erroneous pod resource requests
+can result in under-utilisation or high resource contention.
 
 \section{Summary}
 
