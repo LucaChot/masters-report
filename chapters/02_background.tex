@@ -12,22 +12,23 @@
 % material either in the introduction or at appropriate places in the
 % rest of the dissertation.
 %
-
-In this Chapter, I explain how scheduling works in Kubernetes. I will then
-explain the concepts behind \textsc{Pronto}, as well as the reasons for exploring
-\textsc{Pronto}'s application in Kubernetes. I will also describe related Kubernetes
-schedulers. Finally, I will discuss the effectiveness of applying \textsc{Pronto}'s
-algorithm within a Kubernetes system.
+This chapter lays the groundwork for understanding the problem space addressed
+by this dissertation. I first explain how scheduling works in Kubernetes,
+providing the necessary context for the system architecture. Subsequently, the
+chapter delves into \textsc{Pronto}, outlining its core concepts and the
+compelling motivations for exploring its application within the Kubernetes
+ecosystem. Finally, a review of related Kubernetes schedulers is provided to
+highlight the existing landscape and position this work within the current state
+of the art.
 
 \section{Kubernetes}
 
 \subsection{Kubernetes Overview}
 
-\begin{figure}[H]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/components-of-kubernetes.pdf}
-    \caption{The components of a Kubernetes cluster
-    \cite{kubernetes-components}}
+    \caption{The components of a Kubernetes cluster~\cite{kubernetes-components}}
     \label{kube-components}
 \end{figure}
 
@@ -44,17 +45,18 @@ Kubernetes system will constantly work to ensure that the objects exists. The
 Kubernetes API is used to create, modify or delete these Kubernetes objects. Almost
 every Kubernetes object includes two fields: \verb|spec| and \verb|status|.
 \verb|spec| is used on creation as a description of the Objects desired state.
-You can define affinities and QoS classes within this field. Containers also
-contain a \verb|spec| field which specifies \verb|request| and
-\verb|limits|. The \texttt{request} field behaves as a set of minimum
-requirements and is used when scheduling Pods. In contrast, the \texttt{limits}
-field is used by kernel of the Node to throttle a container's resource usage.
-\verb|status| describes the current state of the object, supplied and updated by
-the Kubernetes system. These fields are core to scheduling in Kubernetes.
+Users can define affinities and QoS classes within this field to influence
+scheduling decisions. Containers also contain a \verb|spec| field which
+specifies \verb|request| and \verb|limits|. The \texttt{request} field behaves
+as a set of minimum requirements and is used when scheduling Pods. In contrast,
+the \texttt{limits} field is used by kernel of the Node to throttle a
+container's resource usage. \verb|status| describes the current state of the
+object, supplied and updated by the Kubernetes system. These fields are core to
+scheduling in Kubernetes.
 
 \subsection{Scheduling in Kubernetes}
 In Kubernetes, Pods are the smallest deployable units of computing that you can
-create and manage in Kubernetes. It represents a single instance of a running
+create and manage. It represents a single instance of a running
 process in your cluster and typically contains one or more containers that are
 tightly coupled and share resources. Pods can be individually created with their
 own Yaml files. However, the Kubernetes API also provides workload objects to
@@ -81,27 +83,27 @@ Incremental-SVD and Subspace-Merge, which are used to perform FPCA on the stream
 of telemetry produced by each Node.
 
 \subsection{Singular Value Decomposition}
-The SVF of a real matrix $\mathbf{A}$ with $m$ rows and $n$ columns where $m
-\geq n$ is defines as $\mathbf{A} = \mathbf{U}\Sigma\mathbf{V}^T$, where $U$ and
-$V$ are orthogonal matrices of shape $m \times m$ and $n \times n$ and $\Sigma$
-is a rectangular matrix of shape $m \times n$ with singular values $\sigma_i$
-along its diagonal \cite{}.
+The SVD of a real matrix $\mathbf{A}$ with $m$ rows and $n$ columns where $m
+\geq n$ is defines as $\mathbf{A} = \mathbf{U}\Sigma\mathbf{V}^T$. Here, $\mathbf{U}$ and
+$\mathbf{V}$ are orthogonal matrices of shape $m \times m$ and $n \times n$
+containing the left and right singular vecotrs, respectively. $\Sigma$ is a
+rectangular matrix of shape $m \times n$ with singular values $\sigma_i$ along
+its diagonal~\cite{Strang2009}.
 \begin{align}
 \mathbf{A} = \begin{bmatrix} a_{11} & \dots & a_{1n} \\ \vdots & \ddots & \vdots
-    \\ a_{m1} & \dots & a_{mn} \end{bmatrix} = \begin{bmatrix} \mid \\ u_1 \\
-        \mid \end{bmatrix} \dots \begin{bmatrix} \mid \\ u_m \\ \mid
-            \end{bmatrix} \begin{bmatrix} \sigma_1 & & \\ & \ddots & \\ & &
-                \sigma_m \\ & 0 & \\ & & \\ & & 0 \end{bmatrix} \begin{bmatrix}
-\text{---} & v_1^T & \text{---} \\ \vdots \\ \text{---} & v_m^T & \text{---} \\
-\text{---} & v_{m+1}^T & \text{---} \\ \vdots \\ \text{---} & v_n^T & \text{---}
+    \\ a_{m1} & \dots & a_{mn} \end{bmatrix} = \begin{bmatrix} \mid & & \mid \\ u_1 & \ldots & u_m
+\\ \mid & & \mid  \end{bmatrix} \begin{bmatrix} \sigma_1 & &  & \mid & & \mid \\ &
+\ddots & & 0 & \ldots & 0 \\ & & \sigma_m & \mid & & \mid  \end{bmatrix} \begin{bmatrix}
+    \text{---} & v_1^T & \text{---} \\ & \vdots & \\ \text{---} & v_m^T & \text{---} \\
+    \text{---} & v_{m+1}^T & \text{---} \\ & \vdots  & \\ \text{---} & v_n^T & \text{---}
 \end{bmatrix}
 \end{align}
 
 SVD can also be written compactly by discarding the elements which do not
 contribute to $\mathbf{A}$.
 \begin{align}
-\mathbf{A} = \begin{bmatrix} \mid \\ u_1 \\ \mid \end{bmatrix} \dots
-    \begin{bmatrix} \mid \\ u_m \\ \mid \end{bmatrix} \begin{bmatrix} \sigma_1 &
+\mathbf{A} = \begin{bmatrix} \mid & & \mid \\ u_1 & \ldots & u_m
+\\ \mid & & \mid  \end{bmatrix} \begin{bmatrix} \sigma_1 &
         & \\ & \ddots & \\ & & \sigma_m \end{bmatrix} \begin{bmatrix} \text{---}
 & v_1^T & \text{---} \\ & \vdots & \\ \text{---} & v_m^T & \text{---}
 \end{bmatrix}
@@ -111,9 +113,10 @@ There always exists the SVD for a real matrix, but the decomposition is not
 unique: if $\mathbf{A} = \mathbf{U}_1\Sigma\mathbf{V}_1^T =
 \mathbf{U}_2\Sigma\mathbf{V}_2^T$ then $\Sigma_1 = \Sigma_2$ but $\mathbf{U}_1 =
 \mathbf{U}_2\mathbf{B}_a$ and $\mathbf{V}_1 = \mathbf{V}_2\mathbf{B}_b$ for some
-block diagonal unitary matrices $\mathbf{B}_a, \mathbf{B}_b$ \cite{}. Each
-column in $\mathbf{U}$ and $\mathbf{V}$ is an eignenvector of
-$\mathbf{AA}^T$ and $\mathbf{A}^T\mathbf{A}$.
+block diagonal unitary matrices $\mathbf{B}_a,
+\mathbf{B}_b$~\cite{eftekhari2019moses, Strang2009}. Each column in
+$\mathbf{U}$ and $\mathbf{V}$ is an eignenvector of $\mathbf{AA}^T$ and
+$\mathbf{A}^T\mathbf{A}$.
 
 \subsection{Principal Component Analysis}
 Pricipal Component Analysis is a staple of linear dimensionality-reduction
@@ -121,15 +124,15 @@ techniques. The standard PCA procedure takes as input a matrix $\mathbf{B}$
 representing $n$ columns of data with $m$ dimensions. The matrix is first
 mean-centered: $\mathbf{A}_{ij} = (\mathbf{B}_{ij} - \mu_i)$ where $\mu_i$ is
 the mean of the row $i$. The output of PCA is a set of vectors that explain most
-of the variance within $\mathbf{B}$. Given the covariance of a matrix
-$\mathbf{A}$ is given as $\mathbf{AA}^T$ the Principal Components (PCs) maximise
-the following equation:
+of the variance within $\mathbf{B}$. Given the covariance of the mean-centered
+matrix $\mathbf{A}$ is defined as $\mathbf{AA}^T$, the Principal Components (PCs)
+maximise the following equation:
 \begin{align}
 \text{Var}_i = \max_{\substack{x_i \in \mathbb{R}^m \setminus \{\mathbf{0}\} \\
     \|x_i\|=1 \\ x_i \perp x_1 \dots x_{i-1}}} x_i^T \mathbf{A} \mathbf{A}^T x_i
 \end{align}
 
-Given $\mathbf{A} = \mathbf{U}\Sigma\mathbf{V}^T$ from SVD,
+As $\mathbf{A} = \mathbf{U}\Sigma\mathbf{V}^T$ from SVD,
 $\mathbf{AA}^T = \mathbf{U}\Sigma\mathbf{V}^T\mathbf{V}\Sigma\mathbf{U}^T =
 \mathbf{U}\Sigma^2\mathbf{U}^T$. Therefore, it can be shown that the PCs
 $x_i = u_i$ from $\mathbf{U}$. The pair $\mathbf{U}, \Sigma$ will also be
@@ -137,7 +140,7 @@ referred to as a subspace as they provide sufficient information to describe the
 orginal $\mathbf{B}$ matrix.
 
 \subsection{Subspace-Merge}
-Subspace-Merge is used to merge two subspaces together. Given two subsets
+Subspace-Merge is used to merge two subspaces together. Given two subspaces
 $(\mathbf{U}_1, \Sigma)$ and $(\mathbf{U}_1, \Sigma)$ from $\mathbf{Y}_1$ and
 $\mathbf{Y}_2$ respectively, the subspace of $\mathbf{Y} = [\mathbf{Y}_1,
 \mathbf{Y}_2]$ is:
@@ -161,13 +164,13 @@ Subspace-Merge to produce $\mathbf{U}_l, \Sigma_l$ where $\mathbf{Y} =
     \mathbf{U}\Sigma\mathbf{V}^T$
 \begin{algorithmic}
 \State $\mathbf{U}_1, \Sigma_1, \mathbf{V}_1^T = \text{SVD}(\mathbf{Y}_1)$
-\For {$i = 2$ to $l$ do}
+\For {$i = 2$ to $l$}
 \State $\mathbf{U}_i, \Sigma_i, \mathbf{V}_i^T = \text{SVD}([\mathbf{U}_{i-1}\Sigma_{i-1}, \mathbf{Y}_i])$
 \EndFor
 \end{algorithmic}
 \end{algorithm}
 If the shape of the batches of data is $m \times b$, the space complexity of
-Iterative-SVD is $\mathbb{O}(m^2 + mb)$ as only the latest version of
+Iterative-SVD is $\mathcal{O}(m^2 + mb)$ as only the latest version of
 $\mathbf{U}_i,\Sigma_i$ and $\mathbf{Y}_i$ are needed for each iteration.
 
 \subsection{FPCA and FSVD}
@@ -180,9 +183,9 @@ subspace $\mathbf{U}'\Sigma'$, corresponding to the PCs of the aggregated data
 from all the nodes. \textsc{Pronto} turns this procedure into a streaming algorithm, by
 running Subspace-Merge on the subspaces produced by incremental-SVD. Finally,
 \textsc{Pronto} also introduces a forgetting factor $\gamma$ in front of
-$\mathbf{U}_i\Sigma_i$ in Incremental-SVD that gradually reduces the influence
-of previous subspaces. Like with standard PCA, FPCA can be considered as FSVD on
-centered data.
+$\mathbf{U}_i\Sigma_i$ in Incremental-SVD that allows it to ``forget" old data
+by gradually reducing the influence of previous subspaces. Like with standard
+PCA, FPCA can be considered as FSVD on mean-centered data.
 
 \subsection{Low-Rank Approximations}
 It can be shown that using the first $r$ eignenvectors in the above algorithms
@@ -201,12 +204,11 @@ Incremental-SVD and Subspace-Merge. This lets \textsc{Pronto} reduce the number 
 computations it performs and its memory usage.
 
 \subsection{\protect\textsc{Pronto} System Overview}
-\begin{figure}[H]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/pronto-agg.png}
     \caption{How local models are aggregated in \textsc{Pronto}. Dedicated aggregator
-    nodes propagate the updated subspaces until the root is reached
-    \cite{grammenos_pronto_2021}.}
+    nodes propagate the updated subspaces until the root is reached~\cite{grammenos_pronto_2021}.}
     \label{pronto-agg}
 \end{figure}
 There are two types of nodes in \textsc{Pronto}: compute node (C) and aggregator node
@@ -217,7 +219,7 @@ incoming subspaces, with subspace produced by the root aggregator node being
 propagated back to the compute nodes.
 
 \subsection{\protect\textsc{Pronto} Reject-Job Signal}
-\begin{figure}[H]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/pronto}
     \caption{Projection of incoming $y \in \mathbb{R}^d$ onto embedding $U \in
@@ -235,34 +237,62 @@ signal is raised to indicate that the node is potentially experiencing
 performance degradation and a job should not be scheduled on that node.
 
 \subsection{Strengths}
-\textsc{Pronto}'s ability to accurately predicting spikes in traces from real-world
-datacenters was compared against non-distributed dimensionality-reduction
-methods \cite{}, \textsc{Pronto}'s improved performance over the non-distributed
-strategies implies that there were correlations between job's resource usages on
-different nodes at the same point in time. This suggested that FPCA could use
-telemetry across multiple nodes to more acurrately compute the principle
-components and thus could more accurately predict performance degradation.
-These results also indicated a potential benefit from applying \textsc{Pronto} to a
-Kubernetes environment.
+\textsc{Pronto}'s core strength is its ability to leverage global telemetry data
+to predict performance degradation with high accuracy. The orginal
+\textsc{Pronto} paper~\cite{grammenos_pronto_2021}, which compared its
+effectiveness against non-distributed dimensionality-reduction methods,
+demonstrated superior performance in predicting CPU-Ready spikes in real-world
+datacenter traces. This improved accuracy over the non-distributed
+strategies suggests that significant correlations exist between the resource
+usages of different jobs across various nodes at the same point in time. This
+federated approach allows for a more comprehensive understanding of system-wide
+resource contention, providing more accurate contention predictions than with
+only individual node data. These compelling results indicate a strong potential
+benefit from applying \textsc{Pronto} underlying principles to a Kubernetes
+environment where efficient resource management is paramount.
 
 \subsection{Weaknesses}
-\subsubsection{Assumptions}
-The Pronto paper only provides a method with which to measure node
-"responsiveness" to future workloads. However, it does not include an allocation
-algorithm which then uses this scoring. Furthermore, a binary signal makes it
-difficult to score nodes against each other. Other schedulers typically use a
-scoring function to pick the "optimal" node \cite{kube-scheduler}\cite{}.
+While \textsc{Pronto} offers a promising approach to perforamnce prediction, its
+direct application within Kubernetes scheduling environment faces significant
+challenges due to fundamental assumptions and practical limitations of its
+original design.
 
-In addition, the paper makes multiple assumptions which don't hold in a Kubernetes
-scheduler. Firstly, it assumes there is no communication latency within the system.
-This also implicitly assumes no binding latency: no latency between a node
-accepting a task and the task starting to run on the node. This is important as
-the spike prediction uses live telemetry data to predict spikes, and thus the
-score only considers currently running task. In Kubernetes, the latency between
-a pod being bound to a node and the pod actually running on the node is
-significant \cite{tyczynski_kubernetes_2015}. This introduces another challenge to directly applying
-Pronto to Kubernetes, as nodes may accept too many pods as the signal does not
-reflect the "in flight" pods.
+\subsubsection{Assumptions}
+The \textsc{Pronto} paper primarily focuses on a method for measuring node
+"responsiveness" to future workloads, yieldign a binary Reject-Job signal.
+However, it \textit{lacks an explicit allocation algorithm} to utilise this
+signal for task placement. This binary output presents a fundamental challenge
+in a complex system like Kubernetes:
+\begin{enumerate}
+    \item \textbf{Limited Scoring Capability:} Unlike typical Kubernetes
+        schedulers that emply a scoring-function to rank Nodes and select the
+        ``optimal" fit~\cite{kube-scheduler}, a binary signal offers no
+        mechanism to differentiate between suitable Nodes. This could lead to
+        suboptimal allocation decisions, potentially reducing overall cluster
+        throughput and efficiency
+    \item \textbf{Zero-Latency Assumption:} A critical assumption in the
+        \textsc{Pronto} paper is the absence of communication latency, and
+        implicitly binding latency within the system. This implies that
+        scheduled workloads are immediately reflected in the telemetry, and thus
+        the signal. In such a scenario, a central scheduler could
+        instantaneously stop assigning workloads once a Node signal potential
+        degredation. However, this assumption does not hold in real-world
+        Kubernetes clusters. The latency between a pod being bound to a Node and
+        that Pod actually starting to run and consume resources has been shown
+        to reach as high as 4 seconds \cite{qadeer_scaling_2022}. Directly
+        applying \textsc{Pronto}'s binary signal in this high-latency
+        environment could lead to a ``runaway train" schenario": Nodes might
+        advertise willingness to accept new Pods while a large number of
+        ``inflight" Pods are still pending startup and will overload the node
+        once active.
+\end{enumerate}
+These issues raise the need for a more sophisticated signal that is:
+\begin{enumerate}
+    \item \textbf{Comparable:} provides enough information to score and rank
+        Nodes effectively.
+    \item \textbf{Reservable:} allows the scheduler to track the pending impact
+        of previous scheduling decisions until Pods have begin running.
+\end{enumerate}
 
 % The Pronto paper implements a binary "responsiveness" signal which predicts
 % upcoming performance degradation. Because the authors assume a system with no
@@ -299,56 +329,64 @@ reflect the "in flight" pods.
 % \end{itemize}
 
 \subsubsection{Peak-Prediction}
-While CPU-Ready is specific to VMware vSphere, other contention metrics
-are available on a Linux-based system. The closest related metrics are the
-pressure stall information (PSI) metrics: pressure information for each resource
-is exported through their respective file in
-\verb$/proc/pressure/<cpu|memory|io>$. Within each file, the metrics are
-broken down into two categories: some - which indicates the share of time in
-which at least some tasks are stalled on a given resource, and full which
-indicates the share of time in which all non-idle tasks are stalled on a given
-resource simultaneously.
+\textsc{Pronto} relies on peak-detection within contention metrics (originally
+CPU-Ready in VMware vSphere) to predict future performance degradation. For
+\textsc{Pronto} to generate an accurate Reject-Job signal in Kubernetes, the
+chosen contention metrics should exhibit clear, distinguishable spikes during
+genuine high-resource contention. While increasing the number of collected
+metrics can help reduce the impact of erroneous spikes, collecting more
+telemetry and operating on larger matrices will incurr additional overheads and
+reduce the number of tasks a Node can accept before valid contention is
+detected.
 
-Pronto performs peak-detection on the metrics to predict future spikes which
-then indicate high-resource contention and degraded performance. Therefore, for
-Pronto to make accurate predictions and produce a correct RejectJob signal, PSI
-must exhibit spikes during high-resource contention. To investigate the
-feasibility of peak prediction within a Kubernetes node using PSI metrics, I
-polled the \verb|/proc/pressure| files of nodes when under different workloads.
+Linux-based systems offer Pressure Stall Information (PSI) metrics, accessible
+via \texttt{/proc/pressure/<cpu|memory|io>}. These pseudo-files track the time
+tasks are stalled waiting for resources. To investigate the feasibility of using
+PSI for peak prediction within a Kubernetes Node, I polled the polled the
+\verb|/proc/pressure| files under different workloads.
 
-\begin{figure}[htbp!]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.48\textwidth]{images/pressure-baseline.png}
     \includegraphics[width=0.48\textwidth]{images/pressure-single.png} \\
     \includegraphics[width=0.48\textwidth]{images/pressure-smallbatch.png}
     \includegraphics[width=0.48\textwidth]{images/pressure-bigbatch.png}
-    \caption{Measurements of \texttt{/proc/pressure/} \texttt{total} value under
+    \caption{Measurements of \texttt{total} from \texttt{/proc/pressure/} under
     different loads. The container runtime results in spikes no matter the
     workload.}
     \label{fig:pressure}
 \end{figure}
 
-From figure \ref{fig:pressure}, we can see how even with lightweight workloads,
-the PSI metrics experience a spike in value. These spikes are due to the
-container runtime, in this case Containerd, using resource to create or delete
-the containers of the pods.
+As demonstrated in Figure \ref{fig:pressure}, even with lightweight workloads,
+the PSI metrics frequently experience significant spikes. These transient spikes
+can be attributed to the container runtime (e.g. Containerd) consuming resources
+during the creation or deleteion of containers. These ``noise" would be
+difficult to distinguish from genuine indicators of resource conention ,
+compromising the accuracy of \textsc{Pronto}'s peak-detection mechnanism.
 
-The PSI metrics also expose an average over the last 10 seconds.
-\begin{figure}[htbp!]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.48\textwidth]{images/avg-pressure-baseline.png}
     \includegraphics[width=0.48\textwidth]{images/avg-pressure-single.png} \\
     \includegraphics[width=0.48\textwidth]{images/avg-pressure-smallbatch.png}
     \includegraphics[width=0.48\textwidth]{images/avg-pressure-bigbatch.png}
-    \caption{Measurements of \texttt{/proc/pressure/} \texttt{avg10} value
-    under different loads. The container runtime results in spikes no matter the
+    \caption{Measurements of \texttt{avg10} from \texttt{/proc/pressure/} under
+    different loads. The container runtime results in spikes no matter the
     workload.} \label{fig:pressure-avg}
 \end{figure}
-Figure \ref{fig:pressure-avg} shows how the averaged value is able to reduce the
-contention spikes. However, it also reduces the responsiveness of the metrics -
-in the 10 pod batch, the metrics fails to rise to the same value as in the
-total case before the pods have completed. From this investigation, I concluded
-that peak-prediction with sub-second polling is not feasible within Kubernetes.
+The PSI metrics also expose an average over a 10-second window. Figure
+\ref{fig:pressure-avg} illustrates that averaging the PSI metrics can indeed
+reduce the impact of these container runtime-induced spikes. However, this
+smoothing comes at the cost of responsiveness. In the experiments with a 10-pod
+batch, the averaged metrics failed to converge on the true value observed in
+Figure \ref{fig:pressure} before the Pods had finished running. 10 seconds in
+the timeframe of Kubernetes can result in the same ``runaway train" situation
+described earlier.
+
+Based on this early empirical investigation, I conclude that direct
+preak-prediction from sub-second polling of raw PSI metrics, can not be easily
+applied within a fast-paced Kubernetes environment.
+
 
 % In the paper, Pronto uses \verb|CPU-Reeady| which is generated by the VMware
 % vSphere virtualisation platform. This metric can't be used within a
@@ -376,41 +414,94 @@ that peak-prediction with sub-second polling is not feasible within Kubernetes.
 
 
 \section{Related Work}
-In this section, I explore the existing Kubernetes scheduler space, identifying
-those that share properties with \textsc{Pronto} and highlighting their strengths and
-weaknesses.
+This section examines existing Kubernetes schedulers, highlighting
+those that share characteristics with \textsc{Pronto}: distributed and federated
+schedulers, online schedulers, performance-aware schedulers, and machine
+learning-based schedulers.
 
-\subsection{Telemetric-based Schedulers}
+\subsection{Federated and Distributed Scheduling}
+\textsc{Pronto} is described as a federated algorithm that executes plans in a
+decentralised fashion. Each computing node makes independent decisions for task
+assignments without needed global synchronisation. This contrasts with
+monolithic centralised schedulers~\cite{kube-scheduler, gog_firmament_2016},
+such as the default Kubernetes scheduler (\texttt{kube-scheduler}), which acts
+as a single dispatcher on the master node and has a global state view. These
+schedulers can suffer from scalabilitity issues, reliance on cached data and
+increased network traffic~\cite{grammenos_pronto_2021}. Research has been done
+in multi-cluster scheduling and cluster federation, addressing challenges in
+scalability and geo-distributed environments. Examples include frameworks like
+KubeFed~\cite{faticanti2021application} and architectural proposals like
+Foggy~\cite{santoro2017foggy}. Although \textsc{Pronto} immediate focus s on
+scheudling within a network of nodes that might not be geographically dispersed
+or owned by different entities, its federated learning approach to scharing
+knowledge through aggregated iterates is relevant to discussions around
+decentralised control and coordination in distributed infrastructures.
 
-\subsection{Federated Schedulers}
+\subsection{Online, Real-Time, and Streaming Scheduling}
+TODO: THIS SECTION FEELS WEAK, I MAY DELETE
+\textsc{Pronto} is designed for online task scheduling and operates on real-time
+performance. As a streaming algorithm, \textsc{Pronto} processes incoming data
+in a single pass without storing historical information, enabling Nodes to make
+immediate scheduling decisions about incoming workloads. While the default
+Kubernetes scheduler reacts to changes, it performs bin-packing with statically
+defined resource requests and capacity. Research outside of Kubernetes has
+repeatedly shown that analysing large-scale performance data in near real-time
+for efficient scheduling is difficult~\cite{grammenos_pronto_2021}. As a result,
+\textsc{Pronto}'s explicit streaming algorithm enabling low-latency scheduling
+decisions distinguishes it from approaches that might involve more substantial
+processing pipelines, offline techniques or the reliance on potentially stale
+cached information.
 
-\subsection{Reinforcement Learning Schedulers}
+\subsection{Performance-Aware and Predictive Scheduling}
+As a performance-aware scheduler, \textsc{Pronto} employs
+dimensionality-reduction technique to efficiently process the vast amount of
+telemetry data produced by each node, with the goal of predicting performance
+degradation. While, CPU and RAM utilisation are common metrics for
+performance-aware Kubernetes schedulers~\cite{bao2019deep, beltre2019kubesphere,
+bestari2020dynamic, carvalho2021qoe, toka2021ultra}, \textsc{Pronto}
+distinguishes itself as the first scheduler to incorporate CPU-Ready for task
+scheduling.
+
+Furthermore, the dynamic nature of Kubernetes workloads strongly suggest that
+predictive techniques could improve scheduling efficiency and resource
+utilisation~\cite{carrion2022kubernetes}. Traditional forecasting methods (such as
+exponential smoothing, ARIMA, and SVM) were also explored in
+\cite{grammenos_pronto_2021} for CPU Ready spike prediction, but were found to
+have worse accuracy. This still remains an open research topic.
+
+\subsection{Machine Learning-Based Schedulers}
+\textsc{Pronto} exploits unsupervised learning technique, specifically Federated
+PCA, to discover hidden correlations within unstructured high-dimensional
+telemetry data. Machine Learning (ML) algorithms  are increasingly adopted in
+scheduling to learn from data and improving decision quality.
+Reinforcement learning-based schedulers \cite{bao2019deep, huang2020rlsk,
+peng2021dl2, han2021tailored} use reward functions to continuously improve
+scheduling decisions. While, ML has been used before to predict application or
+resource utilisation~\cite{yang2019design, carvalho2021qoe,
+harichane2020proposal}, these schedulers are typically domain-specific.
+\textsc{Pronto}'s application of unsupervised PCA to predict the performance
+of a Node represents a novel use-case of ML with broad applications within the
+scheduling domain.
 
 \subsection{Summary of Related Work}
-The earlier survey compared how existing Kubernetes schedulers used two
-difference classes of input data - static pod information and telemetry - to
-guide their scheduling decisions. Pod description-based scheduling ensures that
-fundamental resource guarantees are respected. Telemetry-based scheduling can
-more precisely allocate pods to nodes at the cost of increased complexity.
-Hybrid schedulers combine these methods to provide guarantees of fundamental
-resource requests while fine tuning scheduling decisions. However, their
-reliance on predefined pod requirements still limits the QoS they can achieve.
-Without careful consideration and engineering, erroneous pod resource requests
-can result in under-utilisation or high resource contention.
+In summary, \textsc{Pronto} distinguishes itself within the Kubernetes
+scheduling landscape through its federated and decentralised approach, enabling
+independent decision-making at the node level. Its streaming algorithm allows
+for immediate, low-latency task assignments. As a performance-aware scheduler, it
+innovatively uses CPU-Ready for task scheduling and applies unsupervised
+Federated PCA for predictive insights, offering a distinct machine learning
+approach.
 
 \section{Summary}
-
-This chapter introduced the core concepts of online scheduling and the
-Kubernetes environment. I explored existing Kubernetes schedulers, investigating
-the merits of using pod description-based schedulers vs. telemetry-based
-schedulers. From the brief survey, I identified that few Kubernetes schedulers
-use deeper contention indicators, such as cache pressure and memory pressure.
-A potential technique that could be applied to Kubernetes scheduling is Pronto:
-a novel scoring method that uses a federated approach with contention-based
-metric - allowing it to quickly predict performance degredation while catering
-for distributional shifts. While Pronto can't be directly applied to Kubernetes,
-its federated apsect and its use of contention-based metrics can inspire a new
-FL approach.
+This chapter provided the foundational knowledge for the dissertation,
+introducing an overview of the Kubernetes architecture and its scheduling
+mechnaism. It then introduced \textsc{Pronto}, a novel approach to scheduling,
+explaining the core mathematics behind its FPCA, and highlighting its accuracy
+in predicting performance degredation through global telemetry. However,
+significant weaknesses were identified, emphasising the necessity for a more
+sophisticated \textbf{comparable} and \textbf{reservable} signal. Finally, a
+review of existing Kubernetes schedulers, helped distinguish \textbf{Pronto}
+from the current landscape and highlight it potential contribution.
 
 % \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]
     % \textbf{Summary:} {\em In this chapter I will summarise the problem and
