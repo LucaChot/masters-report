@@ -32,149 +32,127 @@
 % notifications of full capacity.
 %
 
-Kubernetes has established itself as the leading platform for container
+Kubernetes has firmly established itself as the leading platform for container
 orchestration, experiencing widespread adoption across diverse industries and
-organizations of all scales \cite{kubernetes-adoption-statistics}. From
-traditional stateless microservices that power modern web applications and APIs,
-to complex stateful databases requiring persistent storage, Kubernetes provides
-a robust and flexible foundation. It seamlessly orchestrates high-throughput
-batch processing jobs, streamlines continuous integration and delivery (CI/CD)
-pipelines, and has become the infrastructure backbone for cloud computing
-services like Google Cloud and Azure \cite{google-gke, azure-aks}. Furthermore,
-its versatility extends to supporting machine learning (ML) deployments
-\cite{kubernetes-ai}, edge computing \cite{cloudraft}, and even serverless
-functions \cite{knative, openwhisk}. This broad applicability solidifies
-Kubernetes' position as a cornerstone of the cloud-native industry.
+organizations of all scales~\cite{kubernetes-adoption-statistics}. From
+stateless microservices to complex stateful databases, Kubernetes serves as the
+infrastructure backbone for cloud computing services like Google
+Cloud~\cite{google-gke} and Azure~\cite{azure-aks}. Its versatility, from
+supporting machine learning (ML) deployments~\cite{kubernetes-ai}, edge
+computing~\cite{cloudraft} end serverless functions~\cite{knative, openwhisk},
+solidifies Kubernetes' position as a cornerstone of the cloud-native industry.
 
-A core function of container orchestration is the scheduling of containers
-across a cluster. Task scheduling is classified as an NP-hard problem and
-consists of organising, prioritising and allocating tasks to a set of resources
-in an optimal manner. Kubernetes performs online scheduling, a more challenging
-subset of scheduling \cite{pruhs2004online} where schedulers receive tasks over
-time, and must schedule the tasks without any knowledge of the future. Without
-entirely knowing of all tasks to come, the scheduler can't guarantee optimal
-schedules. Much research has been focused on finding efficient scheduling
-algorithms that guarantee solutions as close to optimal as possible. The
-standard Kubernetes approach assumes a set of pre-determined Node capacities and
-resource requirements, translating the problem of efficient scheduling into one
-of bin-packing \cite{}.
-
-In the dynamic and resource-intensive landscape of containerized applications,
-efficient online scheduling is paramount for both performance and
+A core function of container orchestration is the efficient scheduling of
+containers across a cluster. Kubernetes performs online scheduling, a
+particularly challenging subset of the NP-hard task-scheduling problem. In
+online scheduling, tasks must be allocated without prior knowledge of future
+arrivals~\cite{pruhs2004online}. In this dynamic and resource-intensive
+landscape, efficient online scheduling is paramount for both performance and
 cost-effectiveness. Poor scheduling decisions can lead to significant
-infrastructure waste, directly impacting an organisation's bottom line.
-Misconfiguration in resource requests and limits are a primary cause of
-under-utilised resources or idle nodes, and thus higher billing
+infrastructure waste, directly impacting an organization's bottom line.
+Misconfiguration in resource requests and limits is a primary cause of
+under-utilized resources or idle nodes, leading to higher billing
 \cite{cost-strategies,
 bin-packing-and-cost-savings-in-kubernetes-clusters-on-aws}.
 
-TODO: SHOULD I MOVE THE PARAGRAPH ABOVE TO THE TOP TO HAVE A MORE IMPACTFUL
-START
+Kubernetes was built upon the ideas from Borg~\cite{}, a large-scale cluster
+management developed and used by Google. Consequently, Kubernetes' default
+scheduler~\cite{kube-scheduler} (\texttt{kube-scheduler}) performs bin-packing
+based on the resource requests included in Pod descriptions and heuristic-based
+capacities calculated from the Nodes' advertised hardware. The performance
+achieved by \texttt{kube-scheduler} therefore depends on accurate estimates of
+Pod resource usage. While telemetry-based systems have been proposed to improve
+scheduling decisions, they often use expensive deep-ML techniques
+\cite{bao2019deep, peng2021dl2} or focuses on a per-Node
+level~\cite{yang2019design}. These telemetry-based systems typically augment
+existing resource requests or re-schedule already running worklods to less
+congested Nodes.
 
-The available Kubernetes schedulers can be divided based on the information they
-use to inform their scheduling decisions: pod-description based schedulers,
-which use pod annotations to declare resource requests, resource limits and QoS classes,
-and telemetry-based schedulers, which periodically collected live information
-from each node. As previously mentioned, pod-description based schedulers rely on
-accurate resource usage estimations. Telemetry-based schedulers can circumvent this
-problem, collecting information about the true resource usage of a Node to then
-influence future scheduling decisions. However, to the best of my knowledge,
-all these telemetric schedulers only aim to improve the estimations used by the
-existing default \texttt{kube-scheduler}.
+\textsc{Pronto} \cite{grammenos_pronto_2021} offers a promising direction for a
+purely telemetry-driven approach. This novel federated, asynchronous, and
+memory-limited algorithm schedules allows each compute node to work with a
+global view of the system by distributing the knowledge federation workload to
+reduce the burden on a central scheduler. However, its direct application within
+a Kubernetes scheduling
+environment faces significant challenges. \textsc{Pronto}'s original design
+assumes zero communication latency and yields only a binary "Reject-Job" signal,
+which lacks the granularity for sophisticated Node scoring and fails to account
+for significant Pod startup latencies observed in real-world Kubernetes clusters
+\cite{qadeer_scaling_2022}. Furthermore, empirical investigations into Linux
+Pressure Stall Information (PSI) metrics, a potential replacement for the VMware
+vSphere CPU-Ready metric, revealed frequent transient spikes attributed to the
+container runtime. This would make it difficult to efficiently distinguish
+genuine resource contention from noise when collecting a small set of metrics.
+These limitations necessitate a more sophisticated signal that is both
+\textbf{comparable} for effective Node ranking and \textbf{reservable} to track
+the pending impact of in-flight Pods.
 
-The concept of a Kubernetes scheduler operating without predefined pod resource
-requests remains largely unexplored due to its inherent complexity. However,
-this avenue warrants further investigation. We cannot always guarantee accurate
-workload estimations beforehand, rendering traditional bin-packing approaches
-"best-effort" at best. A purely telemetry-driven scheduler could potentially
-overcome this limitation by adapting to true resource consumption, even for
-unpredictable workloads.
+\section{Dissertation Aims and Contributions}
 
-PRONTO \cite{} offers a promising direction. This novel federated, asynchronous,
-memory-limited algorithm schedules tasks across large-scale networks of hundreds
-of workers. Each individual worker updates their local model based on the
-workload seen so far which is then periodically aggregating the local models
-builds a global view of the system. For a telemetric-only scheduler, maximizing
-information aggregation is crucial. However, in very large clusters,
-centralizing all this data quickly becomes a bottleneck. By distributing the
-knowledge federation workload across the cluster, we can significantly reduce
-the load on a central scheduler. Unfortunately, its assumptions of no
-communication latency, and initial empirical findings when investigating
-metrics indicated that a direct application would not be feasible.
+This dissertation aims to apply the theory behind \textsc{Pronto} within the
+Kubernetes ecosystem by proposing, implementing, and evaluating \textsc{CARICO} (Italian
+for "load"), a novel, purely telemetry-driven scheduling algorithm that
+maintains the federated, asynchronous, and memory-limited properties of
+\textsc{Pronto} explicitly accounting for communication latency.
 
-Instead, I devised a new algorithm, CARICO (Italian for "load"), that is still
-federated, asynchronous and memory-limited like PRONTO, but accounts for
-communication latency. Nodes perform FSVD on capacity-based metrics, rather than
-FPCA, modeling past resource usage to estimate future workload. Nodes can then
-use their current resource usage and estimated workload to produce a measure of
-capacity which can be used to score Nodes. Furthermore, when combined with
-simple signal processing, this signal can be transformed to represent the number
-of Pods a Node is willing to accept, allowing schedulers to handle communication
-latencies by reserving portions of the signal with each scheduling decision.
-
-In contrast, I developed CARICO (Italian for "load"), a novel algorithm that
-maintains the federated, asynchronous, and memory-limited properties of PRONTO
-while explicitly incorporating communication latency considerations. Nodes
-perform Federated Singular Value Decomposition (FSVD)
-on capacity-based metrics, rather than Federated Principal Component Analysis
-(FPCA), to model historical resource utilisation and forecast future workload.
-Based on their current resource usage and estimated workload, Nodes
-compute a dynamic capacity metric which serves as a basis for Node scoring.
-Moreover, through the application of simple signal processing, this capacity
-signal can be transformed to quantify the number of Pods a Node is prepared to
-accept, thereby allowing schedulers to account for communication latencies by
-reserving portions of the signal with each scheduling decision.
-
-For the evaluation, I implement CARICO within the Kubernetes ecosystem and run
-it within a Kubernetes Cluster. This required extensive investigations into
-various sources of telemetry, metrics and signal processing with the goal of
-generating an an accurate and precise capacity signal. I evaluate CARICO's
-overall performance when scheduling various workloads on a Kubernetes cluster,
-comparing it to the industry-standard default \texttt{kube-scheduler}. I show
-that while CARICO achieves comparable throughput, it significantl outperforms as
-a QoS scheduler, demonstrating lower Pod Completion times and improved workload
-isolation.
-
-To sum up, this project makes the following contributions:
+The key contributions of this project are:
 \begin{itemize}
-\item Investigate the feasibility of applying PRONTO to Kubernetes scheduling
-\item Propose a novel scoring algorithm, CARICO, with the same properties as
-    PRONTO, while also accounting for possible communication latency.
+    \item \textbf{Feasibility Analysis of \textsc{Pronto} for Kubernetes:} An
+        investigation into the applicability of \textsc{Pronto}'s principles to
+        Kubernetes scheduling, highlighting its flawed assumptions and
+        presenting empirical evidence for the challenges of using raw telemetry
+        metrics.
+    \item \textbf{Proposal of \textsc{CARICO}:} A novel federated, asynchronous,
+        and memory-limited scoring algorithm that explicitly accounts for
+        communication latency.
     \begin{itemize}
-        \item Novel application of FSVD to build a local model of recent
-            resource usage. Adapted the standard SVD subspace merge operation to
-            account for a lack of mean-centering.
-        \item Present a novel signal that scores a Node's predicted capacity
-            considering recent workloads experienced across the cluster.
-        \item Apply simple signal processing techniques to transform the
-            generated capacity signal into a signal that can be reserved.
+        \item Novel application of Federated Singular Value Decomposition (FSVD)
+            to build a local model of recent resource usage, adapting the
+            standard SVD subspace merge operation for a lack of mean-centering.
+        \item Presentation of a novel \textbf{comparable} capacity signal that scores a Node's
+            predicted ability to accept new workloads, considering recent
+            resource utilisation across the cluster.
+        \item Application of simple signal processing techniques to transform
+            the generated capacity signal into a \textbf{reservable} metric,
+            enabling schedulers to account for communication latencies.
     \end{itemize}
-\item Implement a prototype of CARICO to evaluate the algorithm when applied to
-    a real-world cluster and workloads.
+    \item \textbf{Prototype Implementation and Evaluation of \textsc{CARICO}:}
     \begin{itemize}
-        \item Investigate different metrics to use to build the local model,
-            elucidating the problems of using metrics advertised by Virtual
-            Machines (VMs). Explore different signal processing techniques to
-            reduce noise generated by the container runtime.
-        \item Ensure correctness of the generated signal and investigate different
-            approaches to estimating the baseline signal value and the signal
-            cost associated with a single Pod.
-        \item Investigate the overall performance of CARICO under different
-            workloads. I focus on throughput, QoS, and performance isolation.
+        \item Extensive investigation into different telemetry metrics and
+            signal processing techniques within the setting of a Kubernetes
+            cluster to generate an accurate and precise capacity signal.
+        \item Analysis of the correctness of the generated signal and
+            exploration of approaches for estimating reservation quantities.
+        \item Comprehensive evaluation of \textsc{CARICO}'s overall performance
+            under various workloads on a real-world Kubernetes cluster,
+            comparing its throughput, Quality of Service (QoS), and performance
+            isolation against the industry-standard \texttt{kube-scheduler}.
     \end{itemize}
 \end{itemize}
 
-I Chapter 2, I go over existing Kubernetes schedulers, highlighting how only Pod
-description-based schedulers or telemetry-based schedulers which aim to optimise
-decisions of already running Pod description-based schedulers exist. I conduct a
-brief investigation into the feasibility of applying Pronto to Kubernetes,
-highlighting flawed assumptions and presenting empirical evidence. In Chapter 3,
-I propose the novel algorithm, CARICO, using proofs and reasoning to explain the
-generated capacity signal. In Chapter 4, I outline the structure of the CARICO
-system in Kubernetes, exploring  numerous metrics, signal processing techniques
-with the goal of generating an accurate and precise signal. In Chapter 5, I
-evaluate the performance of CARICO under different workloads, collecting
-numerous performance metrics and comparing it against the standard
-\verb|kube-scheduler|. Lastly, I conclude my work and propose potential future
-directions.
-
+\section{Dissertation Overview}
+The remainder of this dissertation is structured as follows:
+\begin{itemize}
+    \item \textbf{Chapter 2 (Background):} This chapter provides foundational
+        knowledge, detailing Kubernetes architecture and its scheduling
+        mechanism. It introduces \textsc{Pronto}, explaining its core
+        mathematics and highlighting its accuracy in predicting performance
+        degradation, while also critically examining its weaknesses that
+        necessitate a more sophisticated signal. Finally, it reviews existing
+        Kubernetes schedulers to contextualize this work within the current
+        landscape.
+    \item \textbf{Chapter 3 (Design):} This chapter proposes the novel
+        \textsc{CARICO} algorithm, providing detailed proofs and reasoning to
+        explain the generation and properties of its capacity signal.
+    \item \textbf{Chapter 4 (Implementation):} This chapter outlines the
+        structure of the \textsc{CARICO} system within Kubernetes, exploring the
+        selection of numerous metrics and signal processing techniques employed
+        to generate an accurate and precise signal.
+    \item \textbf{Chapter 5 (Evaluation):} This chapter presents a comprehensive
+        evaluation of \textsc{CARICO}'s performance under different workloads,
+        collecting numerous performance metrics and comparing it against the
+        standard \texttt{kube-scheduler}.
+    \item \textbf{Chapter 6 (Conclusion and Future Work):} This final chapter
+        summarizes the key findings of the dissertation and proposes potential
+        directions for future research.
+\end{itemize}
