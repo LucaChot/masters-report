@@ -9,6 +9,7 @@ A level-1 auxiliary file: chapters/05_implementation.aux
 A level-1 auxiliary file: chapters/06_evaluation.aux
 A level-1 auxiliary file: chapters/07_summary.aux
 The style file: unsrturl.bst
+A level-1 auxiliary file: chapters/08_appendix.aux
 Reallocated glb_str_ptr (elt_size=4) to 20 items from 10.
 Reallocated global_strs (elt_size=200001) to 20 items from 10.
 Reallocated glb_str_end (elt_size=4) to 20 items from 10.
@@ -18,7 +19,7 @@ Database file #1: report.bib
 Warning--I didn't find a database entry for ""
 You've used 34 entries,
             2616 wiz_defined-function locations,
-            770 strings with 10993 characters,
+            771 strings with 11017 characters,
 and the built_in function-call counts, 11681 in all, are:
 = -- 1198
 > -- 279
