@@ -1,4 +1,4 @@
-\chapter{Design}
+\chapter{\protect\textsc{Carico}}
 % This chapter may be called something else\ldots but in general the
 % idea is that you have one (or a few) ``meat'' chapters which describe
 % the work you did in technical detail.
@@ -7,45 +7,55 @@
     % goals of my system. I will give a brief overview of the chapter structure,
     % summarising each core section and what I achieve.}
 % \end{tcolorbox}
+This chapter details \textsc{Carico}, a novel federated, asynchronous,
+memory-limited algorithm, building upon the principles of \textsc{Pronto}.
+Rather than performing standard FPCA, \textsc{Carico} applies FSVD on
+non-centered metrics to build a model of experience resource usage. By combining
+this model with a new continuous signal function, nodes can be scored by their
+capacity according to the expected workload and their current resource usage.
+Finally, we explain the two assumptions required to translate the calculated
+capacity signal into one that can be reserved. As this algorithm produces a
+signal that measures "capacity", I will refer to it as \textsc{Carico} - "load"
+in Italian.
 
-In this chapter I outline a novel federated, asynchronous, memory-limited
-algorithm similar to Pronto. However, rather than performing standard FPCA, I
-apply FSVD on non-centered metrics to build a model of experience resource
-usage. Combining this model with a new continuous signal function, nodes be
-scored by their capacity according to the expected workload and their current
-resource usage. Finally, we propose a method of capacity and cost prediction to
-be used by the schedulers reserve function. As this algorithm produces a signal
-that measures "capacity", I will refer to it as Spazio - "space" in Italian.
+\section{Capacity Signal}
+In Section \ref{sec:intro-weakness}, we identified critical limitations of
+\textsc{Pronto}'s binary ``Reject-Job" signal within the Kubernetes ecosystem:
+its lack of comparable Node scoring and inability to handle Pod startup
+latencies. While one could conceivably compare the number of detected spikes,
+this does not translate into a reservabl signal, meaning its imporssoble to
+quantitavely assign or reserve ``peak detections" for incoming Pods.
+Furthermore, as emprically demonstrated in Figure
+\ref{fig:podcount-util-pressure}, contention metrics often do no change
+proportionally to the number of tasks assigned, making them difficult to reserve
+accurately.
 
-\section{PCA using SVD}
-When applying PCA to a matrix $B$, the matrix is first centered by taking
-$A_{ij} = (B_{ij} - \mu_i)$ where $\mu_i$ is the mean of row $i$. The output of
-PCA is a set of rows $y_i^T = x_i^TA$ where $x_i,...,x_m$ are orthonormal
-vectors that maximise the variance of the $i^{\text{th}}$ row:
-\[ \text{Var}_i = \max_{\substack{x_i \in \mathbb{R}^m \setminus \{ 0\} \\
-\|x_i\| = 1 \\ x_i \perp x_1 \ldots x_{i-1}}} y_i^T y_i = \max_{\substack{x_i
-\in \mathbb{R}^m\setminus \{ 0\} \\ \|x_i\| = 1 \\ x_i \perp x_1 \ldots
-x_{i-1}}} x_i^T \textbf{ AA } x_i \]
-Given $\text{SVD}(\textbf{A}) = \textbf{U}, \Sigma, \textbf{V}^T$, it can be
-shown that $x_i = u_i$ from $\textbf{U}$, and $\Sigma_ii = \sigma_i =
-\text{Var}_i$. This allows us to use iterative-SVD to efficiently perform PCA.
+To overcome these limitations, a signal reflecting varying levels of contention
+and offering a predictable, scalar relationship with task assignments was
+necessary. This led us to reconsider a metric of capacity. Supported by its use
+within \texttt{kube-scheduler}, this approach provides the necessary properties
+to make it suitable with reservation mechanisms. The subsequent challenge was to
+adapt \textsc{Pronto}'s underlying mathematical framework, FSVD, to produce a
+measure of capacity instead of performance variability. The goal was to develop
+a continuous, comparable, and reservable signal that could effectively and
+accurately guide scheduling decisions.
 
 \section{Local Model}
 \label{sec:local-model-construction}
-In Pronto, iterative-SVD is performed on the mean-centered batch of CPU-Ready
-samples and its latest local model. Iterative-SVD allows Pronto to become a
+In \textsc{Pronto}, iterative-SVD is performed on the mean-centered batch of CPU-Ready
+samples and its latest local model. Iterative-SVD allows \textsc{Pronto} to become a
 stream algorithm with memory usage proportional to $O(d)$ where $d$ is the
 number of features in the batch. The resulting $U$ and $\Sigma$ matrix
 correspond to the PCs of the latest data combined with historical data.
 
-In Spazio, the nodes perform iterative-SVD on a batch of [0,1]-normalised
+In \textsc{Carico}, the nodes perform iterative-SVD on a batch of [0,1]-normalised
 telemetry data. The telemetry data must have the following property: a value of
 0 indicates empty while a value of 1 indicates capacity is full. As we are
 no-longer mean-centering the dataset before applying SVD, the value we are
 maximising is:
 \begin{align}
 x_i^T \mathbf{A}^T \mathbf{A} x_i &= \left\| \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
@@ -58,21 +68,21 @@ a_n \\
 |
 \end{bmatrix} \right\|^2 \\
 &= \left( \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
 a_1 \\
 |
 \end{bmatrix} \right)^2 + \left( \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
 a_2 \\
 |
 \end{bmatrix} \right)^2 + \dots + \left( \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
@@ -94,7 +104,7 @@ the new PCA. As every element in $A$ and $A'$ is [0,1] normalised, the maximised
 expression follows this property:
 \begin{align}
 x_i^T \mathbf{[AA']}^T \mathbf{[AA']} x_i &= \left\| \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
@@ -107,14 +117,14 @@ a_{2n} \\
 |
 \end{bmatrix} \right\|^2 \\
 &= \left( \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
 a_1 \\
 |
 \end{bmatrix} \right)^2 +  \dots + \left( \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
@@ -122,14 +132,14 @@ a_{2n} \\
 |
 \end{bmatrix} \right)^2 \\
 &\geq \left( \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
 a_1 \\
 |
 \end{bmatrix} \right)^2 + \dots + \left( \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
@@ -140,15 +150,15 @@ a_{n} \\
 
 As $\sigma_i$ corresponds to $\text{Var}_i$, with each iterative-SVD, we
 increase the eigenvalues of $\Sigma$. This is problematic as exploding values
-can result in more expensive matrix operations. In addition, both Pronto and
-Spazio use $\Sigma$ as some sort of weighting. Unreasonably large $\sigma_i$
+can result in more expensive matrix operations. In addition, both \textsc{Pronto} and
+\textsc{Carico} use $\Sigma$ as some sort of weighting. Unreasonably large $\sigma_i$
 values will result in incorrect signal values.
 \begin{align}
     & \textbf{B} = \left[\bigg(\frac{\sqrt{\alpha}}{\sqrt{\alpha +
     \beta}}\mathbf{A}\bigg)\bigg(\frac{\sqrt{\beta}}{\sqrt{\alpha +
     \beta}}\mathbf{A'}\bigg)\right] \\
 & x_i^T \mathbf{B}^T\mathbf{B} x_i = \frac{\alpha}{\alpha + \beta}\left\| \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
@@ -161,7 +171,7 @@ a_{n} \\
 |
 \end{bmatrix} \right\|^2 + \\
 & \hspace{2.2cm} \frac{\beta}{\alpha + \beta}\left\| \begin{bmatrix}
-\text{--} & x_i^T & \text{--} \\
+\text{---} & x_i^T & \text{---} \\
 \end{bmatrix}
 \begin{bmatrix}
 | \\
@@ -250,10 +260,10 @@ utilisation.
 
 \section{Reserve Cost and Capacity}
 \label{sec:spazio-cost-capacity}
-Like Pronto, Spazio's signal uses its current resource usage, and therefore, only
-reflects Pods that have been scheduled and are running on the Node. For Spazio
+Like \textsc{Pronto}, \textsc{Carico}'s signal uses its current resource usage, and therefore, only
+reflects Pods that have been scheduled and are running on the Node. For \textsc{Carico}
 to work in a system with Pod startup latency, the scheduler must be able to
-predict the effect a Pod will have on a Node's signal. Spazio assumes that Nodes
+predict the effect a Pod will have on a Node's signal. \textsc{Carico} assumes that Nodes
 know the number of currently running Pods, as well as, have the ability to
 estimate their signal capacity and per-Pod cost (I will explain the prediction
 methods used in the prototype in section \ref{}). From With information, a Node
@@ -296,40 +306,40 @@ operations:
 \end{itemize}
 
 \section{Properties}
-Pronto is designed to be \textit{federated, streaming} and
-\textit{unsupervised}. Spazio exhibits identical properties while also
+\textsc{Pronto} is designed to be \textit{federated, streaming} and
+\textit{unsupervised}. \textsc{Carico} exhibits identical properties while also
 considering the existance of communication and Pod startup latency.
 
-\textbf{Federated:} Pronto executes scheduling plans in a decentralised fashion
+\textbf{Federated:} \textsc{Pronto} executes scheduling plans in a decentralised fashion
 without knowledge of the global performance dataset. Such approach in
 Kubernetes could actually decrease performance. The Kubernetes API server
 handles the publishing and updating of Kubernetes objects. A decentralised
 system with no global synchronisation or coordination could result in a
 stampede of Bind requests that could overload the Kubernetes API server and slow
-down the publishing of incoming Pods. Instead, Spazio uses a central scheduler
+down the publishing of incoming Pods. Instead, \textsc{Carico} uses a central scheduler
 to score Nodes and perform the final Bind operation. However, it can still be
 considered federated because of its use of federated PCA \cite{}: individual
 Nodes can have a unified view of the global workload while maintaining their
 individual autonomy to set their score as they deem fit.
 
-\textbf{Streaming:} Spazio's use of iterative-SVD, like Pronto, means it only
+\textbf{Streaming:} \textsc{Carico}'s use of iterative-SVD, like \textsc{Pronto}, means it only
 requires memory linear to the number of features considered; the required memory
-is proportional to $\mathcal{O}(d)$. Furthermore, like Pronto, Spazio only
+is proportional to $\mathcal{O}(d)$. Furthermore, like \textsc{Pronto}, \textsc{Carico} only
 requires a single pass over the incoming data without having to store historical
 data in order to update its estimates.
 
-\textbf{Unsupervised:} Spazio uses a derivative of PCA, a popular technique for
-discovering linera structure or reducing dimensionality in data. Like Pronto, it
+\textbf{Unsupervised:} \textsc{Carico} uses a derivative of PCA, a popular technique for
+discovering linera structure or reducing dimensionality in data. Like \textsc{Pronto}, it
 exploits the resulting subspace estimate along with the incoming data to reveal
 patterns in recent resource-usage.
 
-\textbf{Continuous Value} Pronto is a binary signal, which makes difficult to
-score Nodes. Spazio's $\text{avail.} \in \mathbb{R}$, allowing Nodes to be
+\textbf{Continuous Value} \textsc{Pronto} is a binary signal, which makes difficult to
+score Nodes. \textsc{Carico}'s $\text{avail.} \in \mathbb{R}$, allowing Nodes to be
 filtered and scored against each other.
 
-\textbf{Latency Resilient:} Unlike Pronto which assumes no communication
-latency, Spazio was designed with Kubernetes in mind, and thus must consider
-possible latency in communication and Pod startup. Spazio's $\text{avail.}$'s
+\textbf{Latency Resilient:} Unlike \textsc{Pronto} which assumes no communication
+latency, \textsc{Carico} was designed with Kubernetes in mind, and thus must consider
+possible latency in communication and Pod startup. \textsc{Carico}'s $\text{avail.}$'s
 unit of measure allows the central scheduler to easily track the estimated cost
 of Pods in-flight, ensuring subsequent scheduling decisions do not mistakenly
 overload a Node with a high $\text{avail.}$.

@@ -252,6 +252,7 @@ benefit from applying \textsc{Pronto} underlying principles to a Kubernetes
 environment where efficient resource management is paramount.
 
 \subsection{Weaknesses}
+\label{sec:intro-weakness}
 While \textsc{Pronto} offers a promising approach to perforamnce prediction, its
 direct application within Kubernetes scheduling environment faces significant
 challenges due to fundamental assumptions and practical limitations of its
@@ -259,17 +260,10 @@ original design.
 
 \subsubsection{Assumptions}
 The \textsc{Pronto} paper primarily focuses on a method for measuring node
-"responsiveness" to future workloads, yieldign a binary Reject-Job signal.
-However, it \textit{lacks an explicit allocation algorithm} to utilise this
-signal for task placement. This binary output presents a fundamental challenge
-in a complex system like Kubernetes:
+"responsiveness" to future workloads, yielding a binary Reject-Job signal.
+However, implementing its design in a complex system like Kubernetes raises
+fundamental challenges:
 \begin{enumerate}
-    \item \textbf{Limited Scoring Capability:} Unlike typical Kubernetes
-        schedulers that emply a scoring-function to rank Nodes and select the
-        ``optimal" fit~\cite{kube-scheduler}, a binary signal offers no
-        mechanism to differentiate between suitable Nodes. This could lead to
-        suboptimal allocation decisions, potentially reducing overall cluster
-        throughput and efficiency
     \item \textbf{Zero-Latency Assumption:} A critical assumption in the
         \textsc{Pronto} paper is the absence of communication latency, and
         implicitly binding latency within the system. This implies that
@@ -285,6 +279,21 @@ in a complex system like Kubernetes:
         advertise willingness to accept new Pods while a large number of
         ``inflight" Pods are still pending startup and will overload the node
         once active.
+    \item \textbf{Lack of Explicit Alloction Algorithm:} \textsc{Pronto} allows
+        indivdual compute nodes to reject or accept incoming jobs. However, it
+        does not explicitly provide a system to optimally decide which compute
+        nodes are considered for a task. While a simple approach would be to allow
+        individual Nodes to request Pending Pods, it suffers from scalability
+        issues as hundreds of Nodes sending requests to the Kubernetes APIServer
+        would greatly degrade its performance or even cause it to crash.
+        Instead, I decided to take a centralised approach, where Nodes
+        periodically update their signal to influence where Pods are allocated.
+    \item \textbf{Limited Scoring Capability:} Unlike typical Kubernetes
+        schedulers that emply a scoring-function to rank Nodes and select the
+        ``optimal" fit~\cite{kube-scheduler}, a binary signal offers no
+        mechanism to differentiate between suitable Nodes. This could lead to
+        suboptimal allocation decisions, potentially reducing overall cluster
+        throughput and efficiency
 \end{enumerate}
 These issues raise the need for a more sophisticated signal that is:
 \begin{enumerate}

@@ -1,0 +1,93 @@
+\appendix
+
+\section{Proof: The First Left Singular Vector as a Pseudo Weighted Average}
+Let $\mathbf{A}$ be an $m \times n$ matrix with non-negative elements $0 \leq
+a_{ij} \leq 1$. Let $u_1$ be the first left singular vector and $\sigma_1$ the
+corresponding singular value of $\mathbf{A}$.
+
+\subsection{Fundamental Representation of $u_1$}
+The vector $u_1$ is an eigenvector of $\mathbf{AA}^T$ associated with the
+largest eigenvalue $\sigma_1^2$: $\mathbf{AA}^T = \sigma_1^2 u_1$. Let $a_j$
+denote the $j$-th column of $\mathbf{A}$. Then $\mathbf{AA}^T = \sum_{j=1}^n a_j
+a_j^T$. Substituting this into the eigenvalue equation and assuming $\sigma_1
+\neq 0$: $\big( \sum_{j = 1}^n a_j a_j^T\big) u_1 = \sigma_1^2 u_1 \implies
+\sum_{j=1}^n a_j (a_j^T u_1) = \sigma_1^2 u_1$. Thus $u_1$ can be expressed as a
+linear combination of the columns of $\mathbf{A}$:
+\[ u_1 = \sum_{j=1}^n \bigg(\frac{a_j^T u_1}{\sigma_1^2}\bigg) a_j =
+\sum_{j=1}^n w_j a_j, \text{  where } w_j = \frac{a_j^T u_1}{\sigma_1^2} \]
+
+\subsection{Contribution of Columns to $u_1$}
+The magnitude of each weight $w_j$ is given by:
+\[ |w_j| = \frac{|a_j^T u_1|}{\sigma_1^2} = \frac{\parallel a_j\parallel
+|\cos(\theta_j)|}{\sigma_1^2}\]
+where $\theta_j$ is the angle between column $a_j$ and $u_1$. Columns $a_j$ with
+larger norms $\parallel a_j \parallel$ or those more parallel to $u_1$ (i.e.
+$|\cos(\theta_j)| \approx 1$) will have weights $w_j$ of greater magnitude.
+Consequently, these "larger" or more aligned columns contribute more
+significantly to the sum defining $u_1$ and thus to its direction
+
+\subsection{Non-Uniqueness of $u_1$ and Relation to Perron-Frobenius Theorem}
+The singular vectors in SVD are not unique: if $\mathbf{A} =
+\mathbf{U}_1\Sigma\mathbf{V}_1^T = \mathbf{U}_2\Sigma\mathbf{V}_2^T$ then
+$\Sigma_1 = \Sigma_2$ but $\mathbf{U}_1 = \mathbf{U}_2\mathbf{B}_a$ and
+$\mathbf{V}_1 = \mathbf{V}_2\mathbf{B}_b$ for some block diagonal unitary
+matrices $\mathbf{B}_a, \mathbf{B}_b$~\cite{eftekhari2019moses}.
+
+Since $\mathbf{A}$ has non-negative entries ($a_{ij} \geq 0$), $\mathbf{AA}^T$
+is a non-negative matrix. By the Perron-Frobenius theorem, there exists an
+eigenvector $u_1^+$ corresponding to the eigenvalue $\sigma_1^2$ whose
+components $u_{1i}^+$ are all non-negative ($u_{1i}^+ \geq 0$). The first left
+singular vector $u_1$ obtained from SVD must then be $u_1 = bu_1^+$ where $b =
+\pm 1$
+
+\subsection{Interpretation as a Pseudo Weighted Average}
+\begin{itemize}
+    \item \textbf{Case 1:} $b = 1 \implies u_1 = u_1^+$.\\
+    In this case, $a_j^Tu_1 = a_j^Tu_1^+ = \sum_i a_{ij}u_{1i}^+ \geq 0$ (as
+    $a_{ij} \geq 0, u_{1i}^+ \geq 0$).\\
+    The weights $w_j = (a_j^Tu_1)/\sigma_1^2$ are therefore non-negative ($w_j
+    \geq 0$).\\
+    $u_1 = \sum w_ja_j$ becomes a conic combination of the non-negative column
+    vectors $a_j$. This $u_1$ (itself non-negative) acts as a pseudo weighted
+    average, representing a principal direction within the cone spanned by the
+    $a_j$. Columns contributing larger non-negative $w_j$ pull $u_1$ more
+    strongly in their direction.
+    \item \textbf{Case 2:} $b = -1 \implies u_1 = -u_1^+$.\\
+    Here, $a_j^Tu_1 = a_j^T(-u_1^+) =  - a_j^T(u_1^+) \leq 0$.\\
+    The weights $w_j = (a_j^Tu_1)/\sigma_1^2$ are non-positive ($w_j \leq 0$).\\
+    While $u_1 = \sum w_ja_j$ now involves non-positive weights for non-negative
+    vectors $a_j$, the magnitudes $|w_j| = (a_j^Tu_1)/\sigma_1^2$ remain the
+    same as in Case 1. Thus, columns $a_j$ that are ``larger" or more aligned
+    with $u_1^+$ still contribute with greater magnitude to the sum, determining
+    the orientation of the line spanned by u.
+\end{itemize}
+
+\subsection{Conclusion}
+The vector $u_1$ is a linear combination of the columns of $\mathbf{A}$, $u_1 =
+\sum w_j a_j$. The magnitude of the coefficient $w_j$ for each column $a_j$ is
+proportional to the projection of $a_j$ onto $u_1$ (scaled by $1/\sigma_1^2$).
+This means the columns with larger norms or those more aligned with the
+principal direction (the line spanned by $u_1$) contribute more significantly to
+defining this direction.
+
+Irrespective of the sign $b$ (determined by the SVD algorithm), the line along
+which $u_1$ lies is shaped by this weighted aggregation.
+
+\section{Lorem ipsum}
+
+% Some traditional fake Latin prose for calibrating words/page
+Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
+nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat,
+sed diam voluptua. At vero eos et accusam et justo duo dolores et ea
+rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem
+ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur
+sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et
+dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam
+et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea
+takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit
+amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor
+invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
+At vero eos et accusam et justo duo dolores et ea rebum. Stet clita
+kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit
+amet.
+
