@@ -1,6 +1,7 @@
 \chapter{Required Lemmas for Model Interpretation}
 
 \section{Proof: The First Left Singular Vector as a Pseudo Weighted Average}
+\label{app:vector-to-avg}
 Let $\mathbf{A}$ be an $m \times n$ matrix with non-negative elements $0 \leq
 a_{ij} \leq 1$. Let $u_1$ be the first left singular vector and $\sigma_1$ the
 corresponding singular value of $\mathbf{A}$.
@@ -74,6 +75,7 @@ Irrespective of the sign $b$ (determined by the SVD algorithm), the line along
 which $u_1$ lies is shaped by this weighted aggregation.
 
 \section{Proof: Monotonicity of the First Singular Value for Non-Negative Matrices}
+\label{sec:app-monotonicity}
 Let $\mathbf{A}$ and $\mathbf{B}$ be $m \times n$ matrices with real entries
 such that $0 \leq a_{ij} \leq b_{ij} \leq 1$ for all $i,j$. We want to show that
 $\sigma_1(\mathbf{A}) \leq \sigma_1(\mathbf{B})$, where $\sigma_1(\mathbf{M})$
@@ -132,6 +134,7 @@ the first singular value of the resulting matrix $\mathbf{B}$ wil greater than
 or equal to that of $\mathbf{A}$.
 
 \section{Proof: Singular Value of Concatenated Matrix}
+\label{sec:app-concatenate}
 This section proves the following statement:\\
 Given two non-negative matrices $\mathbf{A} \in \mathbb{R}^{m \times n_1}$ and
 $\mathbf{B} \in \mathbb{R}^{m \times n_2}$, the first singular value of the
@@ -161,8 +164,8 @@ Consider a vector $x_0 \in \mathbb{R}^{n_1 + n_2}$ constructs as $x_0 =
 \begin{bmatrix} v_{\mathbf{A}}^* \\ 0_{n_2 \times 1} \end{bmatrix}$, where
 $0_{n_2 \times 1}$ is the zero vector of dimensions $n_2$.\\
 The squared norm of $x_0$ is $\parallel x_0 \parallel_2^2 = \parallel
-v_{\mathbf{A}}^*$ \parallel_2^2 + \parallel 0_{n_2 \times 1} \parallel_2^2 = 1^2
-+ 0  = 1. Thus, $x_0$ is a unit vector.
+v_{\mathbf{A}}^* \parallel_2^2 + \parallel 0_{n_2 \times 1} \parallel_2^2 = 1^2
++ 0  = 1$. Thus, $x_0$ is a unit vector.
 
 By definitions of $\sigma_1(\mathbf{C})$:
 \[ \sigma_1(\mathbf{C}) = \max_{\parallel x \parallel_2 = 1} \parallel
@@ -185,8 +188,8 @@ $\sigma_1(\mathbf{B}) = \parallel \mathbf{B}v_{\mathbf{B}}^* \parallel_2$. Such
 Consider a vector $x_1 \in \mathbb{R}^{n_1 + n_2}$ constructs as $x_1 =
 \begin{bmatrix} 0_{n_1 \times 1} \\ v_{\mathbf{B}}^* \end{bmatrix}$.\\
 The squared norm of $x_1$ is $\parallel x_1 \parallel_2^2 = \parallel 0_{n_1
-\times 1} \parallel_2^2 + \parallel v_{\mathbf{B}}^*$ \parallel_2^2 = 0 + 1^2 =
-1. Thus, $x_1$ is a unit vector.
+\times 1} \parallel_2^2 + \parallel v_{\mathbf{B}}^* \parallel_2^2 = 0 + 1^2 =
+1$. Thus, $x_1$ is a unit vector.
 
 Again, by definitions of $\sigma_1(\mathbf{C})$:
 \[ \sigma_1(\mathbf{C}) \geq \parallel \mathbf{C}x_1 \parallel_2 \]
@@ -207,52 +210,73 @@ greater than or equal to the maximum of these two values:
 \sigma_1(\mathbf{B})) \]
 
 \section{$\sigma_1$ of Scaled Concatenation}
+\label{sec:app-scale}
 This section proves the following statement:
 Given two non-negative matrices $\mathbf{A} \in \mathbb{R}^{m \times n_1}$ and
-$\mathbf{B} \in \mathbb{R}^{m \times n_2}$ and non-negative scalar weights
-$\gamma_{\mathbf{A}} = \sqrt{w_{\mathbf{A}}}$ and $\gamma_{\mathbf{B}} =
-\sqrt{w_{\mathbf{B}}}$ such that $w_{\mathbf{A}} + w_{\mathbf{B}} = 1$, the
+$\mathbf{\mathbf{B}} \in \mathbb{R}^{m \times n_2}$ and non-negative scalar weights
+$\gamma_{\mathbf{A}} = \sqrt{w_{\mathbf{A}}}$ and $\gamma_{\mathbf{\mathbf{B}}} =
+\sqrt{w_{\mathbf{\mathbf{B}}}}$ such that $w_{\mathbf{A}} + w_{\mathbf{\mathbf{B}}} = 1$, the
 resulting first singular value and the first left
 singular vector of the concatenated matrix $\mathbf{C} = [\gamma_{\mathbf{A}}\mathbf{A},
-\gamma_{\mathbf{B}}\mathbf{B}]$ has the following property:
-\[ \min(P_{\mathbf{A}}(u_{\mathbf{C}}),P_{\mathbf{B}}(u_{\mathbf{C}})) \leq \sigma_{\mathbf{C}}^2 \leq
-\max(P_{\mathbf{A}}(u_{\mathbf{C}}),P_{\mathbf{B}}(u_{\mathbf{C}})) \]
+\gamma_{\mathbf{\mathbf{B}}}\mathbf{\mathbf{B}}]$ has the following property:
+\[ \min(P_{\mathbf{A}}(u_{\mathbf{C}}),P_{\mathbf{\mathbf{B}}}(u_{\mathbf{C}})) \leq \sigma_{\mathbf{C}}^2 \leq
+\max(P_{\mathbf{A}}(u_{\mathbf{C}}),P_{\mathbf{\mathbf{B}}}(u_{\mathbf{C}})) \]
 where $\sigma_{\mathbf{C}}$ and $u_{\mathbf{C}}$ correspond to the first singular value and first
 left singular vector of $\mathbf{C}$, $P_{\mathbf{M}}(u)$ is the sum of squared scalar porjections
 of the columns in $\mathbf{M}$ onto $u$ (let $m_j$ be the $j$-th column of $\mathbf{M}$ $P_{\mathbf{M}}(u)
 = \sum_{j=1}^n (u^T m_j)^2$).
 
-\subsection{Expanding $\sigma_1(C)$}
-By definition, $S_{C} = \sigma_1(C)$ and $u_{C}$ is the corresponding first
-singular left vector. Thus, they satisfy the eigenvalue equation for $CC^T$:
-\[ CC^Tu_{C} = S_{C}^2 u_{C} \]
-Pre-multiplying by $u_{C}^T$:
+\subsection{Expanding $\sigma_1(\mathbf{C})$}
+By definition, $S_{\mathbf{C}} = \sigma_1(\mathbf{C})$ and $u_{\mathbf{C}}$ is the corresponding first
+singular left vector. Thus, they satisfy the eigenvalue equation for $\mathbf{C}\mathbf{C}^T$:
+\[ \mathbf{C}\mathbf{C}^Tu_{\mathbf{C}} = S_{\mathbf{C}}^2 u_{\mathbf{C}} \]
+Pre-multiplying by $u_{\mathbf{C}}^T$:
 \begin{align}
-    u_{C}^T(CC^T u_{C}) &= u_{C}^T(S_{C}^2 u_{C}) \\
-    u_{C}^T CC^T u_{C} &= S_{C}^2 (u_{C}^T u_{C})
+    u_{\mathbf{C}}^T(\mathbf{C}\mathbf{C}^T u_{\mathbf{C}}) &= u_{\mathbf{C}}^T(S_{\mathbf{C}}^2 u_{\mathbf{C}}) \\
+    u_{\mathbf{C}}^T \mathbf{C}\mathbf{C}^T u_{\mathbf{C}} &= S_{\mathbf{C}}^2 (u_{\mathbf{C}}^T u_{\mathbf{C}})
 \end{align}
-Since $u_{C}$ is a unit vector, $u_{C}^T u_{C} = \parallel u_{C} \parallel_2^2 =
+Since $u_{\mathbf{C}}$ is a unit vector, $u_{\mathbf{C}}^T u_{\mathbf{C}} = \parallel u_{\mathbf{C}} \parallel_2^2 =
 1$. So,
-\[ S_{C}^2 = u_{C}^T CC^T u_{C} \]
-Now, lets express $CC^T$ in terms of $A$ and $B$:\\
-The matrix $C = [\gamma_{A}A,\gamma_{B}B]$.\\
-Then $C^T = \begin{bmatrix} \gamma_{A}A^T \\ \gamma_{B}B^T \end{bmatrix}$.\\
-So, $CC^T = [\gamma_{A}A,\gamma_{B}B]\begin{bmatrix} \gamma_{A}A^T \\
-\gamma_{B}B^T \end{bmatrix} = (\gamma_{A}A)(\gamma_{A}A^T) +
-(\gamma_{B}B)(\gamma_{B}B^T)$
-\[ CC^T = \gamma_{A}^2AA^T + \gamma_{B}^2BB^T \]
-
-
-
-
- is greater than or equal to the maximum of the first singular
-values of $\mathbf{A}$ and $\mathbf{B}$. That is,
-\[ \sigma_1([\mathbf{A},
-\mathbf{B}]) \geq \max(\sigma_1(\mathbf{A}), \sigma_1(\mathbf{B})) \]
-$\sigma_1(\mathbf{C})$
-
-
-
+\[ S_{\mathbf{C}}^2 = u_{\mathbf{C}}^T \mathbf{C}\mathbf{C}^T u_{\mathbf{C}} \]
+Now, lets express $\mathbf{C}\mathbf{C}^T$ in terms of $\mathbf{A}$ and $\mathbf{B}$:\\
+The matrix $\mathbf{C} = [\gamma_{\mathbf{A}}\mathbf{A},\gamma_{\mathbf{B}}\mathbf{B}]$.\\
+Then $\mathbf{C}^T = \begin{bmatrix} \gamma_{\mathbf{A}}\mathbf{A}^T \\ \gamma_{\mathbf{B}}\mathbf{B}^T \end{bmatrix}$.\\
+So, $\mathbf{C}\mathbf{C}^T = [\gamma_{\mathbf{A}}\mathbf{A},\gamma_{\mathbf{B}}\mathbf{B}]\begin{bmatrix} \gamma_{\mathbf{A}}\mathbf{A}^T \\
+\gamma_{\mathbf{B}}\mathbf{B}^T \end{bmatrix} = (\gamma_{\mathbf{A}}\mathbf{A})(\gamma_{\mathbf{A}}\mathbf{A}^T) +
+(\gamma_{\mathbf{B}}\mathbf{B})(\gamma_{\mathbf{B}}\mathbf{B}^T)$
+\[ \mathbf{C}\mathbf{C}^T = \gamma_{\mathbf{A}}^2\mathbf{A}\mathbf{A}^T + \gamma_{\mathbf{B}}^2\mathbf{B}\mathbf{B}^T \]
+Substitute this expression for $\mathbf{C}\mathbf{C}^T$ into the equation for $S_{\mathbf{C}}^2$:
+\begin{align}
+    S_{\mathbf{C}}^2 &= u_{\mathbf{C}}^T (\gamma_{\mathbf{A}}^2\mathbf{A}\mathbf{A}^T + \gamma_{\mathbf{B}}^2\mathbf{B}\mathbf{B}^T)u_{\mathbf{C}} \\
+    S_{\mathbf{C}}^2 &= \gamma_{\mathbf{A}}^2(u_{\mathbf{C}}^T\mathbf{A}\mathbf{A}^Tu_{\mathbf{C}}) + \gamma_{\mathbf{B}}^2(u_{\mathbf{C}}^T\mathbf{A}\mathbf{A}^Tu_{\mathbf{C}})
+\end{align}
+Using the definitions for $P_{\mathbf{A}}(u_{\mathbf{C}})$ and $P_{\mathbf{B}}(u_{\mathbf{C}})$:
+\begin{itemize}
+    \item $P_{\mathbf{A}}(u_{\mathbf{C}}) = u_{\mathbf{C}}^T\mathbf{A}\mathbf{A}^Tu_{\mathbf{C}}$ (sum of squared projections of columns of $\mathbf{A}$ onto $u_{\mathbf{C}}$
+    \item $P_{\mathbf{B}}(u_{\mathbf{C}}) = u_{\mathbf{C}}^T\mathbf{B}\mathbf{B}^Tu_{\mathbf{C}}$ (sum of squared projections of columns of $\mathbf{B}$ onto $u_{\mathbf{C}}$
+\end{itemize}
+This means the equation becomes:
+\[ S_{\mathbf{C}}^2 = \gamma_{\mathbf{A}}^2P_{\mathbf{A}}(u_{\mathbf{C}}) + \gamma_{\mathbf{B}}^2P_{\mathbf{B}}(u_{\mathbf{C}}) \]
+We are given weights $\gamma_{\mathbf{A}}, \gamma_{\mathbf{B}}$ such that $\gamma_{\mathbf{A}}^2 \geq 0,
+\gamma_{\mathbf{B}}^2 \geq 0$, and $\gamma_{\mathbf{A}}^2 + \gamma_{\mathbf{B}}^2 = 1$. This means that
+$S_{\mathbf{C}}^2$ is a convex combination of the two values $P_{\mathbf{A}}(u_{\mathbf{C}})$ and
+$P_{\mathbf{B}}(u_{\mathbf{C}})$.
+A fundamental property of convex combinations is that they always lie between
+the minimum and maximum of the values being combined.\\
+Let $x = P_{\mathbf{A}}(u_{\mathbf{C}})$ and $y = P_{\mathbf{B}}(u_{\mathbf{C}})$. Then $S_{\mathbf{C}}^2 = \gamma_{\mathbf{A}}^2 x +
+\gamma_{\mathbf{B}}^2 y$.\\
+If $x \leq y$:
+\begin{itemize}
+    \item $\min(x,y) = x = (\gamma_{\mathbf{A}}^2 + \gamma_{\mathbf{B}}^2)x = \gamma_{\mathbf{A}}^2 x +
+        \gamma_{\mathbf{B}}^2 x \leq \gamma_{\mathbf{A}}^2 x + \gamma_{\mathbf{B}}^2 y = S_{\mathbf{C}}^2$ (since
+        $\gamma_{\mathbf{B}}^2 \geq 0$ and $x \leq y$).
+    \item $\max(x,y) = y = (\gamma_{\mathbf{A}}^2 + \gamma_{\mathbf{B}}^2)y = \gamma_{\mathbf{A}}^2 y +
+        \gamma_{\mathbf{B}}^2 y \geq \gamma_{\mathbf{A}}^2 x + \gamma_{\mathbf{B}}^2 y = S_{\mathbf{C}}^2$ (since
+        $\gamma_{\mathbf{A}}^2 \geq 0$ and $x \leq y$).
+\end{itemize}
+A similar argument holds if $y \leq x$. Therefore:
+\[ \min(P_{\mathbf{A}}(u_{\mathbf{\mathbf{C}}}),P_{\mathbf{\mathbf{B}}}(u_{\mathbf{\mathbf{C}}})) \leq \sigma_{\mathbf{\mathbf{C}}}^2 \leq
+\max(P_{\mathbf{A}}(u_{\mathbf{\mathbf{C}}}),P_{\mathbf{\mathbf{B}}}(u_{\mathbf{\mathbf{C}}})) \]
 
 % Some traditional fake Latin prose for calibrating words/page
 Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
