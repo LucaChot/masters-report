@@ -132,8 +132,7 @@ Pod completion times.
     \centering
     \includegraphics[width=0.45\textwidth]{images/podcount-util-pressure.png}
     \includegraphics[width=0.45\textwidth]{images/ml-podcount-util-pressure.png}
-    \caption{In this figure we sample CPU and memory utilisation from
-    values of \texttt{/proc/stat}, \texttt{/proc/meminfo} at 10Hz during various Kubernetes workload.}
+    \caption{Collected resource metrics during various Kubernetes workload.}
     \label{fig:podcount-util-pressure}
 \end{figure}
 
@@ -161,15 +160,8 @@ into a single metric:
 
 This ensures the metric increases with Pod count but doesn't saturate to
 quickly. This combined CPU metric only reaches its maximum when \verb|/proc/pressure|
-indicates persistant CPU demand (at least one thread always waiting).
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.45\textwidth]{images/blank.pdf}
-    \caption{In this figure we investigate the behaviour of combining both CPU
-    Utilisation and CPU Pressure.}
-    \label{fig:combine-cpu-pressure}
-\end{figure}
+indicates persistant CPU demand (at least one thread always waiting). Figure
+\ref{fig:podcount-util-pressure} illustrates this metric in action.
 
 \subsection{Filtering Metrics}
 \textsc{Carico} does not perform peak detection, but its signal is still
@@ -328,7 +320,7 @@ I devised three Kalman filter-based approaches to estimating reservation costs.
         of Pods}\]
     \item Two separate 1D Kalman Filters predicting the equation:
         \[\text{signal} = \text{capacity} + \text{per Pod cost} \times \text{no.
-        of Pods}\].
+        of Pods}\]
         Here, each filter learns a separate variable. This separation prevents
         non-zero covariance entries in the state covariance matrix ($\mathbf{P}$),
         mitigating oscillations observed with a single 2D Kalman filter.
@@ -363,13 +355,6 @@ stability of the 1D Kalman filter. This filter converged quickly and accurately
 without exhibiting the oscillations that plagued the 2D Kalman filter.
 
 \section{Aggregation Server}
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{images/pronto-agg.png}
-    \caption{How local models are aggregated in \textsc{Pronto}. Dedicated aggregator
-    Nodes propagate the updated subspaces until the root is reached.}
-    \label{pronto-agg}
-\end{figure}
 \textsc{Pronto} aggregation resembles the distributed agglomerative summary
 model (DASM) \cite{}. Local models are aggregated in a "bottom-up" approach
 following a tree-structure depicted in Figure \ref{pronto-agg}. While this
@@ -383,7 +368,7 @@ instead of aggregating the local model and returning the new global model, the
 server first enqueues the local model to be aggregated and returns its current
 view of the global model. This implementation trades consistency for latency.
 
-\begin{figure}[H]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/spazio-agg.pdf}
     \caption{The components within the Aggregator Server.}

@@ -1,8 +1,8 @@
 \chapter{Evaluation}
 
-This section is focused on the empirical evaluation of Spazio as a Kubernetes
+This section is focused on the empirical evaluation of \textsc{Carico} as a Kubernetes
 scheduler. As I was unable to find any telemetric-only schedulers, I decided to
-compare SPAZIO against the default Kubernetes scheduler throughout this section.
+compare \textsc{Carico} against the default Kubernetes scheduler throughout this section.
 \texttt{kube-scheduler} is an industry-standard scheduler that was built upon
 the lessons learnt from Borg \cite{}, and thus, has been thoroughly optimised
 and battle tested. As \texttt{kube-scheduler} is a Pod description-based
@@ -11,13 +11,13 @@ performance achieved can vary depending on description.
 
 The chapter is divided into the following sections:
 \textbf{Overhead - Section \ref{sec:eval-overhead}:} I measure the computational overhead
-incurred from running the SPAZIO Pods on every Node. To ascertain this effect, I
-complare the Job Completion time with and without the deployment of the SPAZIO
+incurred from running the \textsc{Carico} Pods on every Node. To ascertain this effect, I
+complare the Job Completion time with and without the deployment of the \textsc{Carico}
 Pod DaemonSet
 
 \textbf{Different Workloads - Sections
 \ref{sec:eval-cpu-centric},\ref{sec:eval-mem-centric}, \ref{sec:eval-mixed}:}
-These sections investigate the performance of SPAZIO when deploying different
+These sections investigate the performance of \textsc{Carico} when deploying different
 workloads. For each workload, I investigate four metrics: Job Completion, Number
 of Running Pods, Pod Completion and Resource Usage. Job Completion measures the
 time it takes for all the Pods specified by a Job to complete. This then acts as
@@ -29,11 +29,11 @@ the deployment of the Job. A tail-heavy distribution indicates high levels of
 contention and that the scheduler is overloading a Node. Finally, resource
 utilisation will focus on CPU and Memory utilisation. I decided to only measure
 these two resources as they are the only two that are currently considered in
-the scheduling decisions made by both SPAZIO and the default Kubernetes
+the scheduling decisions made by both \textsc{Carico} and the default Kubernetes
 scheduler.
 
 \textbf{Workload Isolation - Section \ref{sec:workload-isolation}:} In this
-section I investigate the workload-isolation provided by SPAZIO and the default
+section I investigate the workload-isolation provided by \textsc{Carico} and the default
 Kubernetes scheduler. Workload isoolation is considered a core component of QoS
 scheduling, and thus is a useful metric to observe.
 
@@ -41,7 +41,7 @@ scheduling, and thus is a useful metric to observe.
 These experiments ran on a Kubernetes cluster containing 20 virtual machines
 (VMs) running on the Xen hypervisor. One of the machines is used as the master
 Node, and the rest are worker Nodes. The master Node contains all the Pods in
-the control plane, and during the evaluation of Spazio, it contains the Spazio
+the control plane, and during the evaluation of \textsc{Carico}, it contains the \textsc{Carico}
 Scheduler and Aggregation Server. Each VM features four Intel Xeon Gold 6142
 CPUs \@ 2.60Ghz with 8 GB of RAM running Ubuntu 24.04.2 LTS. Each CPU has a
 single core with hyperthreading disabled. When running \texttt{kubectl describe
@@ -51,22 +51,22 @@ During the evaluation, I use a Prometheus deployment \cite{} to collect various
 statistics, such as running Pod count, resource utilisation and Kubernetes
 object completions.
 
-\section{Spazio Overhead}
+\section{\textsc{Carico} Overhead}
 \label{sec:eval-overhead}
-To measure the overhead incurred from running the Spazio pods on the Nodes, I
+To measure the overhead incurred from running the \textsc{Carico} pods on the Nodes, I
 compared the completion time of Jobs when running on Nodes with and without the
-Spazio deployment. I considered easuring resource utilisation on a Node with
-just the Spazio Pod running, but much of the behaviour of the
-Spazio Pod occurs during container events. As a result, the measured overhead
-would not represent the entire impact of the Spazio Pod. Instead, by measuring
-the overhead over Jobs, we aggregate the impact of Spazio across multiple
+\textsc{Carico} deployment. I considered easuring resource utilisation on a Node with
+just the \textsc{Carico} Pod running, but much of the behaviour of the
+\textsc{Carico} Pod occurs during container events. As a result, the measured overhead
+would not represent the entire impact of the \textsc{Carico} Pod. Instead, by measuring
+the overhead over Jobs, we aggregate the impact of \textsc{Carico} across multiple
 container events, providing a more holistic view of its impact.
 
 \begin{table}[H]
 \centering
     \begin{tabular}{|c|c|}
     \hline
-    \textbf{Number of Pods} & \textbf{\% Overhead with Spazio} \\
+    \textbf{Number of Pods} & \textbf{\% Overhead with \textsc{Carico}} \\
     \hline
         100 & -2.33 $\pm$ 3.29 \\
         250 & -1.19 $\pm$ 2.44 \\
@@ -76,17 +76,17 @@ container events, providing a more holistic view of its impact.
     \hline
     \end{tabular}
     \label{tab:overhead}
-    \caption{The overhead incurred when running Spazio Pods on Nodes during the
+    \caption{The overhead incurred when running \textsc{Carico} Pods on Nodes during the
     executing of Jobs with varying Pod counts. Each Pod executed
     \texttt{bpi(2000)} and requested 200 milliseconds of CPU time.}
 \end{table}
 
-To measure Spazio's overhead, I used Pod's executing \texttt{bpi(2000)}. Table
+To measure \textsc{Carico}'s overhead, I used Pod's executing \texttt{bpi(2000)}. Table
 \ref{tab:overhead} presents the relative change in Job Completion time with
-Spazio Pods running on the Nodes. We can see that the Job Completion time of
+\textsc{Carico} Pods running on the Nodes. We can see that the Job Completion time of
 smaller Jobs are more noisy, therefore, resulting in an observed decrease in Job
 Completion times. However, with larger and more stable Jobs, the overhead from
-Spazio is more visible. From these observations we can conclude that Spazio has
+\textsc{Carico} is more visible. From these observations we can conclude that \textsc{Carico} has
 $\approx$ 2\% overhead.
 %
 % For any practical projects, you should almost certainly have some kind
@@ -119,7 +119,7 @@ following CPU requests: 100m, 200m, 500m, 1000m. The results are given in Table
         & 104 $\pm$ 2.1 \\
     Default & 1000m & 21 $\pm$ 2.0 & 54.7 $\pm$ 0.6 & 96 $\pm$ 2.6 & 133 $\pm$
         0.6 & 175 $\pm$ 1 \\
-    Spazio &  & 20.3 $\pm$ 0.6 & 35.3 $\pm$ 0.6 & 60.3 $\pm$ 2.5 & 89 $\pm$ 2 &
+    \textsc{Carico} &  & 20.3 $\pm$ 0.6 & 35.3 $\pm$ 0.6 & 60.3 $\pm$ 2.5 & 89 $\pm$ 2 &
         109$\pm$ 1 \\
     \hline
     \end{tabular}
@@ -133,7 +133,7 @@ From Table \ref{tab:pi-2000-throughput}, we can see how much the performance of
 the default scheduler varies depending on the amount of CPU time requested.
 Over-estimating requests can result in the CPU being underutilised, while
 under-estimating can result in too many Pods running on a Node at once. With
-SPAZIO, we observed only observed a 10\% reduction in Job Completion time. This
+\textsc{Carico}, we observed only observed a 10\% reduction in Job Completion time. This
 can be attributed to its use of telemetric data: CPU utilisation amd CPU
 Pressure. In Section \ref{sec:issue-with-util}, I investigated these metrics and
 showed how with \texttt{bpi(2000)} Pods, these metrics indicated full capacity
@@ -155,7 +155,7 @@ CPU UTILISATION AND CPU PRESSURE
         \\
         Kubernetes & 500m & 9.55 & 1.49 & 5.00 & 9.00 & 10.00 & 10.00 & 14.00
         \\
-        Spazio & & 7.69 & 0.99 & 5.00 & 7.00 & 8.00 & 8.00 & 11.00 \\
+        \textsc{Carico} & & 7.69 & 0.99 & 5.00 & 7.00 & 8.00 & 8.00 & 11.00 \\
     \hline
     \end{tabular}
     \caption{Pod Completion of multi-resource Job deployments with different Pod
@@ -232,7 +232,7 @@ computations.
     &  \textbf{CPU} & \textbf{Memory} & \textbf{100 Pods} & \textbf{200 Pods} \\
     \hline
         Default & 200m & 750Mi & 144.3 $\pm$ 0.6 & 362 $\pm$ 20.4\\
-        SPAZIO &  &  & 189 $\pm$ 4.36 & 353.3 $\pm$ 12.7 \\
+        \textsc{Carico} &  &  & 189 $\pm$ 4.36 & 353.3 $\pm$ 12.7 \\
     \hline
     \end{tabular}
     \caption{Job Completion of Job deployments with different Pod counts. Each
@@ -255,10 +255,10 @@ Pod Job.
     \hline
         Kubernetes & 100 & 127.38 & 5.29 & 118 & 123.00 & 126.00 & 132.00 &
         138.00 \\
-        SPAZIO & 100 & 59.02 & 14.62 & 27.00 & 55.00 & 61.00 & 66.00 & 94.00 \\
+        \textsc{Carico} & 100 & 59.02 & 14.62 & 27.00 & 55.00 & 61.00 & 66.00 & 94.00 \\
         Kubernetes & 200 & 225.19 & 36.19 & 45.00 & 231.00 & 236.00 & 239.00 &
         244.00\\
-        SPAZIO & 200 & 64.46 & 14.33 & 23.00 & 57.75 & 67.00 & 73.25 & 89.00 \\
+        \textsc{Carico} & 200 & 64.46 & 14.33 & 23.00 & 57.75 & 67.00 & 73.25 & 89.00 \\
     \hline
     \end{tabular}
     \caption{Pod Completion of multi-resource Job deployments with different Pod
@@ -301,7 +301,7 @@ second wave of Pods results in a slower throughput compared CARICO which ensures
     \caption{The resource utilisation when scheduling a Job with 1000 Pods
     executing \texttt{bpi(2000)}. The top figure gives the resource utilisation
     when scheduling with the default Kubernetes scheduler. The bottom figure
-    gives the resource utilisation when scheduling with SPAZIO.}
+    gives the resource utilisation when scheduling with \textsc{Carico}.}
     %\label{fig:ml-util}
 \end{figure}
 
@@ -321,10 +321,10 @@ a lower overall memory utilisation.
 \label{sec:eval-mixed}
 In this experiment, I deployed the two Jobs defined above: a short-lived
 CPU-focused workload and a longer running ML workload. This experiment evaluates
-how SPAZIO handles more than one type of workload.
+how \textsc{Carico} handles more than one type of workload.
 
 \subsection{Throughput}
-To thoroughly evaluate SPAZIO in this scenario, I varied the distribution of
+To thoroughly evaluate \textsc{Carico} in this scenario, I varied the distribution of
 Pods from each Job. The observed Job Completions are given in Table
 \ref{tab:mixed-throughput}.
 
@@ -337,11 +337,11 @@ Pods from each Job. The observed Job Completions are given in Table
         &  \texttt{bpi(2000)} & \texttt{ML} & \\
     \hline
         Default & 500 & 20 & 105.7 $\pm$ 10.6 \\
-        SPAZIO & 500 & 20 & 88.7 $\pm$ 2.5 \\
+        \textsc{Carico} & 500 & 20 & 88.7 $\pm$ 2.5 \\
         Default & 250 & 50 & 118 $\pm$ 4.58 \\
-        SPAZIO & 250 & 50 & 115.7 $\pm$ 0.58 \\
+        \textsc{Carico} & 250 & 50 & 115.7 $\pm$ 0.58 \\
         Default & 100 & 100 & 149 $\pm$ 0.0 \\
-        SPAZIO & 100 & 100 & 192 $\pm$ 4.0 \\
+        \textsc{Carico} & 100 & 100 & 192 $\pm$ 4.0 \\
     \hline
     \end{tabular}
     \caption{Job Completion of multi-resource Job deployments with different Pod
@@ -357,7 +357,7 @@ limiting throughput is now governed by the throughput achieved with the
 memory-centric workload.
 
 \subsection{Pod Completions}
-Due to Spazio's lackluster throughput, I decided to investigate distribution of
+Due to \textsc{Carico}'s lackluster throughput, I decided to investigate distribution of
 Pods across Nodes and how it impacted Pod Completion times.
 
 \begin{table}[H]
@@ -369,8 +369,8 @@ Pods across Nodes and how it impacted Pod Completion times.
     \hline
         Kubernetes & \texttt{pi-2000} & 28.78 & 7.52 & 7.00 & 27.00 & 30.00 & 33.00 & 45.00 \\
         Kubernetes & ML & 65.25 & 10.53 & 49.00 & 58.25 & 64.00 & 75.25 & 82.00 \\
-        SPAZIO & \texttt{pi-2000} & 7.40 & 1.14 & 5.00 & 7.00 & 7.00 & 8.00 & 11.0 \\
-        SPAZIO & ML & 34.50 & 7.39 & 22.00 & 27.50 & 36.00 & 40.25 & 44.00 \\
+        \textsc{Carico} & \texttt{pi-2000} & 7.40 & 1.14 & 5.00 & 7.00 & 7.00 & 8.00 & 11.0 \\
+        \textsc{Carico} & ML & 34.50 & 7.39 & 22.00 & 27.50 & 36.00 & 40.25 & 44.00 \\
     \hline
     \end{tabular}
     \caption{Pod Completion of multi-resource Job deployments with different Pod
@@ -415,7 +415,7 @@ close to constant number of Pods.
     \caption{The resource utilisation when scheduling a Job with 1000 Pods
     executing \texttt{bpi(2000)}. The top figure gives the resource utilisation
     when scheduling with the default Kubernetes scheduler. The bottom figure
-    gives the resource utilisation when scheduling with SPAZIO.}
+    gives the resource utilisation when scheduling with \textsc{Carico}.}
     \label{fig:mixed-util}
 \end{figure}
 
@@ -429,7 +429,7 @@ resources.
 
 \section{Workload Isolation}
 \label{sec:workload-isolation}
-To evaluate Spazio's QoS, I investigated how its scheduling decisions impact the
+To evaluate \textsc{Carico}'s QoS, I investigated how its scheduling decisions impact the
 performance of already running Pods. For this experiment, I had a Pod running on
 a worker Node, while another Pod periodically sent HTTP GET requests. This
 polling Pod would then measure latency of the response. I then scheduled a Job
@@ -447,7 +447,7 @@ the response latency changed. In the default schedulers case, each Pod requested
     \hline
     Baseline & 0.99 & 3.04 & 3.78 & 4.00 & 4.47 & 8.32 \\
     Default Scheduler & 1.07 & 10.06 & 18.61 & 22.28 & 28.82 & 54.49\\
-    Spazio  & 1.00 & 2.48 & 6.09 & 7.82 & 10.53 & 17.39\\
+    \textsc{Carico}  & 1.00 & 2.48 & 6.09 & 7.82 & 10.53 & 17.39\\
     \hline
     \end{tabular}
     \caption{The distribution of a servers response latency when different
