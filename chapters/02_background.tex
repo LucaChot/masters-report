@@ -21,6 +21,32 @@ ecosystem. Finally, a review of related Kubernetes schedulers is provided to
 highlight the existing landscape and position this work within the current state
 of the art.
 
+\subsection{Datacenters}
+Datacenters house and offer computer resources like compute, memory, storage and
+network. They contain one or more clusters, where each cluster is a set of
+servers that can be considered asa  single compute system. These datacenters can
+scale in size from several tens of machines to hyperscale datacenters with
+hundreds and thousands of machines \cite{27,107}. Datacenters host a variety of
+workloads, comprising a mix of short and long jobs such as batch data analytics,
+interactive queries and machine learning \cite{27}. In this dissertation, I
+only consider data-parallel jobs as they are typicall high fanout jobs that
+require large amounts of compute resources, driving cluster utilisation
+\cite{6}.
+
+Job scheduling defines the way various resources like CPU, memory, disk and
+network are allocated to jobs in the datacenter. Schedulers consider one or more
+aspects of a job, such as resources requested, the number of tasks, estimated
+running time of each task, and the current state of resource allocation within
+the cluster. Schedulers are designed to meet a set of objectives defined by the
+datacenter provider. Example objectives include, job completion time, tail task
+latency, scheduling throughput, resource utilisation and workload heterogeneity.
+These goal can often conflict. For example, increasing scheduling throughput and
+reduced tail task latency often contradict each other. Attempting to schedule
+more tasks within a cluster can result in resource thrashing between the tasks
+and increase tail task latency.
+
+They can vary in size, ranging from small facilities with
+
 \section{Kubernetes}
 
 \subsection{Kubernetes Overview}
