@@ -99,10 +99,10 @@ used can then be calculated from the given field:
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{images/utilisation-baseline.png}
-    \includegraphics[width=0.45\textwidth]{images/utilisation-single.png} \\
-    \includegraphics[width=0.45\textwidth]{images/utilisation-smallbatch.png}
-    \includegraphics[width=0.45\textwidth]{images/utilisation-bigbatch.png}
+    \includegraphics[width=0.45\textwidth]{images/utilisation-baseline.pdf}
+    \includegraphics[width=0.45\textwidth]{images/utilisation-single.pdf} \\
+    \includegraphics[width=0.45\textwidth]{images/utilisation-smallbatch.pdf}
+    \includegraphics[width=0.45\textwidth]{images/utilisation-bigbatch.pdf}
     \caption{In this figure we sample CPU and memory utilisation from
     values of \texttt{/proc/stat}, \texttt{/proc/meminfo} at 10Hz during various
     Kubernetes workloads.}
@@ -130,8 +130,8 @@ Pod completion times.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{images/podcount-util-pressure.png}
-    \includegraphics[width=0.45\textwidth]{images/ml-podcount-util-pressure.png}
+    \includegraphics[width=0.45\textwidth]{images/podcount-util-pressure.pdf}
+    \includegraphics[width=0.45\textwidth]{images/ml-podcount-util-pressure.pdf}
     \caption{Collected resource metrics during various Kubernetes workload.}
     \label{fig:podcount-util-pressure}
 \end{figure}
@@ -179,10 +179,10 @@ $>$ 300ms).
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-baseline.png}
-    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-single.png} \\
-    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-smallbatch.png}
-    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-bigbatch.png}
+    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-baseline.pdf}
+    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-single.pdf} \\
+    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-smallbatch.pdf}
+    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-bigbatch.pdf}
     \caption{This figure shows the smoothed metrics under different workloads.}
     \label{fig:filtered-metrics-eval}
 \end{figure}
@@ -216,7 +216,7 @@ figures \ref{fig:signal-evaluation-cpu} and \ref{fig:signal-evaluation-mem}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{images/signal-with-cpu.png}
+    \includegraphics[width=\textwidth]{images/signal-with-cpu.pdf}
     \caption{The calculated capacity signal of a Node running \texttt{ng-stress
     --cpu=8 --cpu-load=25}. While running this workload, $1000$ Pods running
     \texttt{bpi(2000)} were scheduled across surrounding Nodes.}
@@ -224,7 +224,7 @@ figures \ref{fig:signal-evaluation-cpu} and \ref{fig:signal-evaluation-mem}
 \end{figure}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{images/signal-with-memory.png}
+    \includegraphics[width=\textwidth]{images/signal-with-memory.pdf}
     \caption{The calculated capacity signal of a Node running \texttt{ng-stress
     --vm=4 --vm-bytes=4G}. While running this workload, $1000$ Pods running
     \texttt{bpi(2000)} was scheduled across surrounding Nodes.}
@@ -277,14 +277,14 @@ resource spikes from multiple, concurrent container events. Early detection
 allows temporarily halting estimations during such bursts.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{images/event-comparison-start.png}
+    \includegraphics[width=\textwidth]{images/event-comparison-start.pdf}
     \caption{When different event listeners detected the creation of a Pod.}
     \label{fig:event-evaluation-start}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{images/event-comparison-end.png}
+    \includegraphics[width=\textwidth]{images/event-comparison-end.pdf}
     \caption{When different event listeners detected the completion of a Pod.}
     \label{fig:event-evaluation-end}
 \end{figure}
@@ -336,7 +336,7 @@ Per-Pod-Cost, leading to an inflated advertised capacity.
 \begin{figure}[H]
     \centering
     % \includegraphics[width=0.45\textwidth]{images/filter-signal.png}
-    \includegraphics[width=\textwidth]{images/filter-comparison.png}
+    \includegraphics[width=\textwidth]{images/filter-comparison.pdf}
     \caption{The estimates of the Kalman filters when Node experiences
     variable-sized bursts of \texttt{bpi(2000)} Pods.}
     \label{fig:filter-evaluation}
