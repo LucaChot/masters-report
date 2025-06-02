@@ -65,13 +65,13 @@ Pod, and the Kubernetes control plane uses the workload's specification to
 manage Pod objects on your behalf. Example workloads include Deployment,
 StatefulSet, DaemonSet and Job.
 
-When a Pod is created, it initially exists in a ``Pending" state - it has been
+When a Pod is created, it initially exists in a ``Pending" state: it has been
 declared but hasn't yet been allocated to a Node. Kubernetes schedulers watch for
 newly created but unassigned Pods, and based on a set of
 rules or algorithms, select the most suitable Node for that Pod. Once a Node is
 chosen, the scheduler ``binds" the Pod to the Node, updating the Pod's definition
 in the Kubernetes API server by setting its \verb|spec.nodeName| field to the
-name of the Node. Once this occures, the Pod transitions from ``Pending" to
+name of the Node. Once this occurs, the Pod transitions from ``Pending" to
 ``Running".
 
 \section{\protect\textsc{Pronto}}
@@ -86,7 +86,7 @@ of telemetry produced by each Node.
 The SVD of a real matrix $\mathbf{A}$ with $m$ rows and $n$ columns where $m
 \geq n$ is defines as $\mathbf{A} = \mathbf{U}\Sigma\mathbf{V}^T$. Here, $\mathbf{U}$ and
 $\mathbf{V}$ are orthogonal matrices of shape $m \times m$ and $n \times n$
-containing the left and right singular vecotrs, respectively. $\Sigma$ is a
+containing the left and right singular vectors, respectively. $\Sigma$ is a
 rectangular matrix of shape $m \times n$ with singular values $\sigma_i$ along
 its diagonal~\cite{Strang2009}.
 \begin{align}
@@ -115,11 +115,11 @@ unique: if $\mathbf{A} = \mathbf{U}_1\Sigma\mathbf{V}_1^T =
 \mathbf{U}_2\mathbf{B}_a$ and $\mathbf{V}_1 = \mathbf{V}_2\mathbf{B}_b$ for some
 block diagonal unitary matrices $\mathbf{B}_a,
 \mathbf{B}_b$~\cite{eftekhari2019moses, Strang2009}. Each column in
-$\mathbf{U}$ and $\mathbf{V}$ is an eignenvector of $\mathbf{AA}^T$ and
+$\mathbf{U}$ and $\mathbf{V}$ is an eigenvector of $\mathbf{AA}^T$ and
 $\mathbf{A}^T\mathbf{A}$.
 
 \subsection{Principal Component Analysis}
-Pricipal Component Analysis is a staple of linear dimensionality-reduction
+Principal Component Analysis is a staple of linear dimensionality-reduction
 techniques. The standard PCA procedure takes as input a matrix $\mathbf{B}$
 representing $n$ columns of data with $m$ dimensions. The matrix is first
 mean-centered: $\mathbf{A}_{ij} = (\mathbf{B}_{ij} - \mu_i)$ where $\mu_i$ is
@@ -137,11 +137,11 @@ $\mathbf{AA}^T = \mathbf{U}\Sigma\mathbf{V}^T\mathbf{V}\Sigma\mathbf{U}^T =
 \mathbf{U}\Sigma^2\mathbf{U}^T$. Therefore, it can be shown that the PCs
 $x_i = u_i$ from $\mathbf{U}$. The pair $\mathbf{U}, \Sigma$ will also be
 referred to as a subspace as they provide sufficient information to describe the
-orginal $\mathbf{B}$ matrix.
+original $\mathbf{B}$ matrix.
 
 \subsection{Subspace-Merge}
 Subspace-Merge is used to merge two subspaces together. Given two subspaces
-$(\mathbf{U}_1, \Sigma)$ and $(\mathbf{U}_1, \Sigma)$ from $\mathbf{Y}_1$ and
+$(\mathbf{U}_1, \Sigma_1)$ and $(\mathbf{U}_2, \Sigma_2)$ from $\mathbf{Y}_1$ and
 $\mathbf{Y}_2$ respectively, the subspace of $\mathbf{Y} = [\mathbf{Y}_1,
 \mathbf{Y}_2]$ is:
 \begin{align}
@@ -170,7 +170,7 @@ Subspace-Merge to produce $\mathbf{U}_l, \Sigma_l$ where $\mathbf{Y} =
 \end{algorithmic}
 \end{algorithm}
 If the shape of the batches of data is $m \times b$, the space complexity of
-Iterative-SVD is $\mathcal{O}(m^2 + mb)$ as only the latest version of
+Incremental-SVD is $\mathcal{O}(m^2 + mb)$ as only the latest version of
 $\mathbf{U}_i,\Sigma_i$ and $\mathbf{Y}_i$ are needed for each iteration.
 
 \subsection{FPCA and FSVD}
@@ -214,7 +214,7 @@ computations it performs and its memory usage.
 There are two types of nodes in \textsc{Pronto}: compute node (C) and aggregator node
 (A). Compute nodes collect and center node statistics (i.e. CPU and Memory) and
 perform Incremental-SVD to obtain the low rank approximations of the local
-subspace $\mathbf{U},\Sigma$. The aggregator nodes before Subspace-Merge on
+subspace $\mathbf{U},\Sigma$. The aggregator nodes perform Subspace-Merge on
 incoming subspaces, with subspace produced by the root aggregator node being
 propagated back to the compute nodes.
 
@@ -231,7 +231,7 @@ propagated back to the compute nodes.
 \end{figure}
 
 Each compute node projects their data onto the latest version of $\textbf{U}$,
-and identifies all the spikes. If the weighed sum of these spikes, using the
+and identifies all the spikes. If the weighted sum of these spikes, using the
 corresponding singular values in $\Sigma$, exceeds a threshold, a rejection
 signal is raised to indicate that the node is potentially experiencing
 performance degradation and a job should not be scheduled on that node.
@@ -253,7 +253,7 @@ environment where efficient resource management is paramount.
 
 \subsection{Weaknesses}
 \label{sec:intro-weakness}
-While \textsc{Pronto} offers a promising approach to perforamnce prediction, its
+While \textsc{Pronto} offers a promising approach to performance prediction, its
 direct application within Kubernetes scheduling environment faces significant
 challenges due to fundamental assumptions and practical limitations of its
 original design.
@@ -279,8 +279,8 @@ fundamental challenges:
         advertise willingness to accept new Pods while a large number of
         ``inflight" Pods are still pending startup and will overload the node
         once active.
-    \item \textbf{Lack of Explicit Alloction Algorithm:} \textsc{Pronto} allows
-        indivdual compute nodes to reject or accept incoming jobs. However, it
+    \item \textbf{Lack of Explicit Allocation Algorithm:} \textsc{Pronto} allows
+        individual compute nodes to reject or accept incoming jobs. However, it
         does not explicitly provide a system to optimally decide which compute
         nodes are considered for a task. While a simple approach would be to allow
         individual Nodes to request Pending Pods, it suffers from scalability
@@ -289,7 +289,7 @@ fundamental challenges:
         Instead, I decided to take a centralised approach, where Nodes
         periodically update their signal to influence where Pods are allocated.
     \item \textbf{Limited Scoring Capability:} Unlike typical Kubernetes
-        schedulers that emply a scoring-function to rank Nodes and select the
+        schedulers that employ a scoring-function to rank Nodes and select the
         ``optimal" fit~\cite{kube-scheduler}, a binary signal offers no
         mechanism to differentiate between suitable Nodes. This could lead to
         suboptimal allocation decisions, potentially reducing overall cluster
@@ -344,7 +344,7 @@ CPU-Ready in VMware vSphere) to predict future performance degradation. For
 chosen contention metrics should exhibit clear, distinguishable spikes during
 genuine high-resource contention. While increasing the number of collected
 metrics can help reduce the impact of erroneous spikes, collecting more
-telemetry and operating on larger matrices will incurr additional overheads and
+telemetry and operating on larger matrices will incur additional overheads and
 reduce the number of tasks a Node can accept before valid contention is
 detected.
 
@@ -370,8 +370,8 @@ As demonstrated in Figure \ref{fig:pressure}, even with lightweight workloads,
 the PSI metrics frequently experience significant spikes. These transient spikes
 can be attributed to the container runtime (e.g. Containerd) consuming resources
 during the creation or deleteion of containers. These ``noise" would be
-difficult to distinguish from genuine indicators of resource conention ,
-compromising the accuracy of \textsc{Pronto}'s peak-detection mechnanism.
+difficult to distinguish from genuine indicators of resource contention ,
+compromising the accuracy of \textsc{Pronto}'s peak-detection mechanism.
 
 \begin{figure}[ht]
     \centering
@@ -393,7 +393,7 @@ the timeframe of Kubernetes can result in the same ``runaway train" situation
 described earlier.
 
 Based on this early empirical investigation, I conclude that direct
-preak-prediction from sub-second polling of raw PSI metrics, can not be easily
+peak-prediction from sub-second polling of raw PSI metrics, can not be easily
 applied within a fast-paced Kubernetes environment.
 
 
@@ -431,18 +431,18 @@ learning-based schedulers.
 \subsection{Federated and Distributed Scheduling}
 \textsc{Pronto} is described as a federated algorithm that executes plans in a
 decentralised fashion. Each computing node makes independent decisions for task
-assignments without needed global synchronisation. This contrasts with
+assignments without needing global synchronisation. This contrasts with
 monolithic centralised schedulers~\cite{kube-scheduler, gog_firmament_2016},
 such as the default Kubernetes scheduler (\texttt{kube-scheduler}), which acts
 as a single dispatcher on the master node and has a global state view. These
-schedulers can suffer from scalabilitity issues, reliance on cached data and
+schedulers can suffer from scalability issues, reliance on cached data and
 increased network traffic~\cite{grammenos_pronto_2021}. Research has been done
 in multi-cluster scheduling and cluster federation, addressing challenges in
 scalability and geo-distributed environments. Examples include frameworks like
 KubeFed~\cite{faticanti2021application} and architectural proposals like
-Foggy~\cite{santoro2017foggy}. Although \textsc{Pronto} immediate focus s on
+Foggy~\cite{santoro2017foggy}. Although \textsc{Pronto} immediate focus is on
 scheudling within a network of nodes that might not be geographically dispersed
-or owned by different entities, its federated learning approach to scharing
+or owned by different entities, its federated learning approach to sharing
 knowledge through aggregated iterates is relevant to discussions around
 decentralised control and coordination in distributed infrastructures.
 
@@ -506,7 +506,7 @@ This chapter provided the foundational knowledge for the dissertation,
 introducing an overview of the Kubernetes architecture and its scheduling
 mechnaism. It then introduced \textsc{Pronto}, a novel approach to scheduling,
 explaining the core mathematics behind its FPCA, and highlighting its accuracy
-in predicting performance degredation through global telemetry. However,
+in predicting performance degradation through global telemetry. However,
 significant weaknesses were identified, emphasising the necessity for a more
 sophisticated \textbf{comparable} and \textbf{reservable} signal. Finally, a
 review of existing Kubernetes schedulers, helped distinguish \textbf{Pronto}

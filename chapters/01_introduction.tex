@@ -51,7 +51,7 @@ landscape, efficient online scheduling is paramount for both performance and
 cost-effectiveness. Poor scheduling decisions can lead to significant
 infrastructure waste, directly impacting an organization's bottom line.
 Misconfiguration in resource requests and limits is a primary cause of
-under-utilized resources or idle nodes, leading to higher billing
+under-utilised resources or idle nodes, leading to higher billing
 \cite{cost-strategies,
 bin-packing-and-cost-savings-in-kubernetes-clusters-on-aws}.
 
@@ -65,12 +65,12 @@ Pod resource usage. While telemetry-based systems have been proposed to improve
 scheduling decisions, they often use expensive deep-ML techniques
 \cite{bao2019deep, peng2021dl2} or focuses on a per-Node
 level~\cite{yang2019design}. These telemetry-based systems typically augment
-existing resource requests or re-schedule already running worklods to less
+existing resource requests or re-schedule already running workloads to less
 congested Nodes.
 
 \textsc{Pronto} \cite{grammenos_pronto_2021} offers a promising direction for a
 purely telemetry-driven approach. This novel federated, asynchronous, and
-memory-limited algorithm schedules allows each compute node to work with a
+memory-limited algorithm allows each compute node to work with a
 global view of the system by distributing the knowledge federation workload to
 reduce the burden on a central scheduler. However, its direct application within
 a Kubernetes scheduling

@@ -34,10 +34,10 @@ its lack of comparable Node scoring and inability to handle Pod startup
 latencies. While one could conceivably compare the number of detected spikes,
 this does not translate into a reservable signal, meaning it's impossible to
 quantitatively assign or reserve ``peak detections" for incoming Pods.
-Furthermore, as empirically demonstrated in Figure
+Furthermore, as will be shown empirically in Figure
 \ref{fig:podcount-util-pressure}, contention metrics often do not change
-proportionally to the number of tasks assigned, making them difficult to reserve
-accurately.
+proportionally to the number of tasks assigned, making them difficult to
+reserve accurately.
 
 To overcome these limitations, a signal reflecting varying levels of contention
 and offering a predictable, scalar relationship with task assignments was
@@ -54,8 +54,8 @@ signal that could effectively and accurately guide scheduling decisions.
 
 \section{Local Model}
 \label{sec:local-model-construction}
-\textsc{Pronto} has each individual compute node build a local model of its
-resource usage by performing iterative-SVD on incoming batches of
+In \textsc{Pronto}, each individual compute node builds a local model of its
+resource usage by performing Incremental-SVD on incoming batches of
 mean-centered telemetry data and its latest local model. The resulting
 $\mathbf{U}$ can be interpreted as the PCs of the original telemetric data, and
 the singular values in $\Sigma$ can be used to weight the different PC
@@ -74,7 +74,7 @@ matrices}.
 
 Instead, \textsc{Carico} is built on top of  a different set of interpretations.
 Using the Lemma proved in Appendix \ref{app:vector-to-avg}, we can interpret the
-first left singular value $u_1$ in $\mathbf{U}$ as a pseudo-weighted average
+first left singular vector $u_1$ in $\mathbf{U}$ as a pseudo-weighted average
 direction of the datapoints in the matrix: ``larger" or more aligned columns
 contribute more significantly to the sum defining $u_1$, and thus to its final
 direction. \textsc{Carico}, thus uses $u_1$ as a primary indicator of the
@@ -107,7 +107,7 @@ usage.
 \label{sec:local-merge}
 While we have shown that the results from performing SVD on [0,1]-normalised
 telemetry data can have useful interpretations, the resulting $\sigma_1$ can
-grow with each iterative-SVD:\\
+grow with each Incremental-SVD:\\
 Given two non-negative matrices $\mathbf{A} \in \mathbb{R}^{m \times n_1}$ and
 $\mathbf{B} \in \mathbb{R}^{m \times n_2}$, the first singular value of the
 concatenated matrix $\mathbf{C} = [\mathbf{A}, \mathbf{B}]$ is greater than or
@@ -153,7 +153,7 @@ earlier interpretations:
         $\sigma_1(\mathbf{C})^2$ is a convex combination of
         $P_{\mathbf{A}}(u_{\mathbf{C}})$ and $P_{\mathbf{B}}(u_{\mathbf{C}})$,
         it is effectively a weighted mean of these two projected sums and
-        ensures $\sigma_1$ grows with the magnitude of the observed resource
+        ensures $\sigma_1$ reflects the magnitude of the observed resource
         usage.
 \end{itemize}
 
@@ -297,11 +297,14 @@ considered federated because of its use of federated SVD \cite{}: individual
 Nodes can have a unified view of the global workload while maintaining their
 individual autonomy to set their score as they deem fit.
 
-\textbf{Streaming:} \textsc{Carico}'s use of iterative-SVD, like \textsc{Pronto}, means it only
-requires memory linear to the number of features considered; the required memory
-is proportional to $\mathcal{O}(d)$. Furthermore, like \textsc{Pronto}, \textsc{Carico} only
-requires a single pass over the incoming data without having to store historical
-data in order to update its estimates.
+\textbf{Streaming:} \textsc{Carico}'s use of Incremental-SVD, like
+\textsc{Pronto}, means it only requires memory linear to the number of features
+considered; given batches of dimension $d \times b$, the required memory is
+proportional to $\mathcal{O}(d)$. As \textsc{Carico} still works with low-rank
+approximations, its memory footprint can be reduced even further. Furthermore,
+like \textsc{Pronto}, \textsc{Carico} only requires a single pass over the
+incoming data without having to store historical data in order to update its
+estimates.
 
 \textbf{Unsupervised:} \textsc{Carico} uses FSVD and assumptions about the
 collected telemetry to generate values with capacity-based interpretations.
@@ -309,9 +312,9 @@ While this greatly differs from \textsc{Pronto} and its use of FPCA,
 \textsc{Carico} still exploits the resulting subspace estimate along with the
 incoming data to reveal patterns in recent resource-usage.
 
-\textbf{Continuous Value} \textsc{Pronto} is a binary signal, which makes difficult to
-score Nodes. \textsc{Carico}'s $\text{Pod-Capacity} \in \mathbb{R}$, allowing
-Nodes to be filtered and scored against each other.
+\textbf{Continuous Value} \textsc{Pronto} is a binary signal, which makes it
+difficult to score Nodes. \textsc{Carico}'s $\text{Pod-Capacity} \in
+\mathbb{R}$, allowing Nodes to be filtered and scored against each other.
 
 \textbf{Latency Resilient:} Unlike \textsc{Pronto} which assumes no communication
 latency, \textsc{Carico} was designed with Kubernetes in mind, and thus must consider

@@ -62,7 +62,7 @@ would not represent the entire impact of the \textsc{Carico} Pod. Instead, by me
 the overhead over Jobs, we aggregate the impact of \textsc{Carico} across multiple
 container events, providing a more holistic view of its impact.
 
-\begin{table}[H]
+\begin{table}[ht!]
 \centering
     \begin{tabular}{|c|c|}
     \hline
@@ -103,7 +103,7 @@ During the measurements with the default Kubernetes scheduler, I used the
 following CPU requests: 100m, 200m, 500m, 1000m. The results are given in Table
 \ref{tab:pi-2000-throughput}
 
-\begin{table}[H]
+\begin{table}[ht!]
 \centering
     \begin{tabular}{|l|r|c|c|c|c|c|}
     \hline
@@ -138,22 +138,22 @@ can be attributed to its use of telemetric data: CPU utilisation amd CPU
 Pressure. In Section \ref{sec:issue-with-util}, I investigated these metrics and
 showed how with \texttt{bpi(2000)} Pods, these metrics indicated full capacity
 when running 4-8 Pods. As the capacity signal of a Node is tied to these
-metrics, the Node's will never advertise more capacity than $\approx$ 8 Nodes.
+metrics, the Node's will never advertise more capacity than $\approx$ 8 Pods.
 
 TODO: POTENTIALLY MENTION HOW 1000M AND 500M CORRESPOND TO THE LIMIT OF USING
 CPU UTILISATION AND CPU PRESSURE
 
 \subsection{Pod Completions}
-\begin{table}[H]
+\begin{table}[ht!]
 \centering
     \begin{tabular}{|l|r|c|c|c|c|c|c|c|}
     \hline
         \bfseries Scheduler & \bfseries CPU Request & \bfseries Mean & \bfseries Std. &
         \bfseries Min. & \bfseries 25\% & \bfseries Median & \bfseries 75\% & \bfseries Max. \\
     \hline
-        Kubernetes & 100m & 47.43 & 14.59 & 7.00 & 39.00 & 52.00 & 57.00 & 73.00
+        Default & 100m & 47.43 & 14.59 & 7.00 & 39.00 & 52.00 & 57.00 & 73.00
         \\
-        Kubernetes & 500m & 9.55 & 1.49 & 5.00 & 9.00 & 10.00 & 10.00 & 14.00
+        Default & 500m & 9.55 & 1.49 & 5.00 & 9.00 & 10.00 & 10.00 & 14.00
         \\
         \textsc{Carico} & & 7.69 & 0.99 & 5.00 & 7.00 & 8.00 & 8.00 & 11.00 \\
     \hline
@@ -169,12 +169,12 @@ the Pod Completion time given in Figure \ref{tab:cpu-pod-completions}. From this
 table, we observe that the lower request default schedulers ends up with a very
 tail-heavy distribution for Pod Completions. Increasing the request to 500
 milliseconds, reduces the mean by $\approx$ 80\% while also reducing the skew.
-However, CARICO is able to achieve the lowest Pod Completion distribution. To
+However, \textsc{Carico} is able to achieve the lowest Pod Completion distribution. To
 help explain the reason by this result, I also measured the number of Pods
 running on each Nodes during the Job execution, and present the values in Figure
 \ref{fig:pi-2000-1000x-pod-running}.
 
-\begin{figure}[H]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/pi-running-pods.png}
     \caption{The number of \texttt{bpi(2000)} Pods running on a Node during the
@@ -185,7 +185,7 @@ Figure \ref{fig:pi-2000-1000x-pod-running} depicts the different approaches
 taken by each scheduler. As the default Kubernetes Scheduler tackles scheduling
 as if it were a bin-packing problem, it schedules as many pods that can fit on a
 Node; each Node has 4000m CPU capacity, 1000m per core. As a result, the 100m
-request results in a stampede of Pods while the 500m request and CARICO assign
+request results in a stampede of Pods while the 500m request and \textsc{Carico} assign
 a relatively constant number of Pods. However, the default scheduler with 500m
 Pods takes the edge in terms of throughput as it achieves a higher number of
 running Pods per Node.
@@ -200,7 +200,7 @@ AND THEREFORE RISKED CORRECTNESS OF SIGNAL
     \includegraphics[width=\textwidth]{images/pi-util.png}
     \caption{the resource utilisation when scheduling a job with 1000 pods
     executing \texttt{bpi(2000)}. the top figure gives the resource utilisation
-    when scheduling with the default kubernetes scheduler. the bottom figure
+    when scheduling with the default kubernetes scheduler. The bottom figure
     gives the resource utilisation when scheduling with spazio.}
     \label{fig:pi-2000-1000x-pod-util}
 \end{figure}
@@ -223,7 +223,7 @@ be detrimental to Job Completion, as terminated Pods results in wasted
 computations.
 
 \subsection{Throughput}
-\begin{table}[H]
+\begin{table}[ht!]
 \centering
     \begin{tabular}{|l|r|r|c|c|}
     \hline
@@ -241,22 +241,22 @@ computations.
     \label{tab:ml-throughput}
 \end{table}
 The Job Completions from the experiment are given in Table
-\ref{tab:ml-throughput}. CARICO achieves a worse performance in the smaller 100
+\ref{tab:ml-throughput}. \textsc{Carico} achieves a worse performance in the smaller 100
 Pod Job, but actually overtakes the default Kubernetes scheduler with the 200
 Pod Job.
 
 \subsection{Pod Completions}
-\begin{table}[H]
+\begin{table}[ht!]
 \centering
     \begin{tabular}{|l|r|c|c|c|c|c|c|c|}
     \hline
         \bfseries Scheduler & \bfseries \# Pods & \bfseries Mean & \bfseries Std. &
         \bfseries Min. & \bfseries 25\% & \bfseries Median & \bfseries 75\% & \bfseries Max. \\
     \hline
-        Kubernetes & 100 & 127.38 & 5.29 & 118 & 123.00 & 126.00 & 132.00 &
+        Default & 100 & 127.38 & 5.29 & 118 & 123.00 & 126.00 & 132.00 &
         138.00 \\
         \textsc{Carico} & 100 & 59.02 & 14.62 & 27.00 & 55.00 & 61.00 & 66.00 & 94.00 \\
-        Kubernetes & 200 & 225.19 & 36.19 & 45.00 & 231.00 & 236.00 & 239.00 &
+        Default & 200 & 225.19 & 36.19 & 45.00 & 231.00 & 236.00 & 239.00 &
         244.00\\
         \textsc{Carico} & 200 & 64.46 & 14.33 & 23.00 & 57.75 & 67.00 & 73.25 & 89.00 \\
     \hline
@@ -273,9 +273,9 @@ ML-based Jobs. When using the default Kubernetes scheduler, increasing the Pod
 count in a Job where the resource request is underestimated, increases
 drastically the average Pod Completion time as well as skewing the distribution
 to become more tail-heavy. However, the distribution of Pod Completion Time
-achieved by CARICO remains consistent as you increase the Job size.
+achieved by \textsc{Carico} remains consistent as you increase the Job size.
 
-\begin{figure}[H]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/ml-running-pods.png}
     \caption{The number of ML Pods running on a Node during the
@@ -291,18 +291,18 @@ Pod completion time. The scheduler still has to wait for Pods to terminate to
 free up memory. When space does become available, it is because a
 stampede of Pods have terminated. While, the scheduler was able to now allocate
 the remaining Pods, only a few Nodes are used while the rest become idle. This
-second wave of Pods results in a slower throughput compared CARICO which ensures
+second wave of Pods results in a slower throughput compared \textsc{Carico} which ensures
 1-3 Pods are always running on a Node.
 
 \subsection{Resource Utilisation}
-\begin{figure}[H]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/ml-util.png}
     \caption{The resource utilisation when scheduling a Job with 1000 Pods
     executing \texttt{bpi(2000)}. The top figure gives the resource utilisation
     when scheduling with the default Kubernetes scheduler. The bottom figure
     gives the resource utilisation when scheduling with \textsc{Carico}.}
-    %\label{fig:ml-util}
+    \label{fig:ml-util}
 \end{figure}
 
 Figure \ref{fig:ml-pod-running} also helps to explain the resulting resource usage
@@ -314,7 +314,7 @@ with both Jobs. However, we can also observe the effect of the second wave of
 Pod allocations during the 200 Pod Job. During the last minute of the Job's
 executing, the average CPU and Memory utilisation of the cluster have dropped to
 $\approx$ 10\%; barely above their baseline utilisation.
-On the other hand, CARICO is again limited by the Node's CPU metrics, achieving
+On the other hand, \textsc{Carico} is again limited by the Node's CPU metrics, achieving
 a lower overall memory utilisation.
 
 \section{Mixed Workloads}
@@ -328,7 +328,7 @@ To thoroughly evaluate \textsc{Carico} in this scenario, I varied the distributi
 Pods from each Job. The observed Job Completions are given in Table
 \ref{tab:mixed-throughput}.
 
-\begin{table}[H]
+\begin{table}[ht!]
 \centering
     \begin{tabular}{|l|c|c|c|}
     \hline
@@ -351,7 +351,7 @@ Pods from each Job. The observed Job Completions are given in Table
     \label{tab:mixed-throughput}
 \end{table}
 The Job Completions from the experiment are given in Table
-\ref{tab:mixed-throughput}. CARICO achieves a higher throughput during the
+\ref{tab:mixed-throughput}. \textsc{Carico} achieves a higher throughput during the
 500-20 and 250-50 combined workloads. However, the final 100-100, we see how the
 limiting throughput is now governed by the throughput achieved with the
 memory-centric workload.
@@ -360,15 +360,15 @@ memory-centric workload.
 Due to \textsc{Carico}'s lackluster throughput, I decided to investigate distribution of
 Pods across Nodes and how it impacted Pod Completion times.
 
-\begin{table}[H]
+\begin{table}[ht!]
 \centering
     \begin{tabular}{|l|c|c|c|c|c|c|c|c|}
     \hline
         \bfseries Scheduler & \bfseries Job & \bfseries Mean & \bfseries Std. &
         \bfseries Min. & \bfseries 25\% & \bfseries Median & \bfseries 75\% & \bfseries Max. \\
     \hline
-        Kubernetes & \texttt{pi-2000} & 28.78 & 7.52 & 7.00 & 27.00 & 30.00 & 33.00 & 45.00 \\
-        Kubernetes & ML & 65.25 & 10.53 & 49.00 & 58.25 & 64.00 & 75.25 & 82.00 \\
+        Default & \texttt{pi-2000} & 28.78 & 7.52 & 7.00 & 27.00 & 30.00 & 33.00 & 45.00 \\
+        Default & ML & 65.25 & 10.53 & 49.00 & 58.25 & 64.00 & 75.25 & 82.00 \\
         \textsc{Carico} & \texttt{pi-2000} & 7.40 & 1.14 & 5.00 & 7.00 & 7.00 & 8.00 & 11.0 \\
         \textsc{Carico} & ML & 34.50 & 7.39 & 22.00 & 27.50 & 36.00 & 40.25 & 44.00 \\
     \hline
@@ -383,14 +383,14 @@ Pods across Nodes and how it impacted Pod Completion times.
 Table \ref{tab:mixed-pod-completions} gives the Pod Completion Distribution
 during an execution of the 500-20 Job combination. We can observe that the
 Pod Completion times for both Jobs is significantly higher with the default
-scheduler compared to CARICO. This shows how CARICO is still able to achieve a
+scheduler compared to \textsc{Carico}. This shows how \textsc{Carico} is still able to achieve a
 low-tailed Pod Completion time when scheduling workloads with different resource
 requests.
 
-TODO: SHOULD I ONLY INVESTIGATE WORKLOADS WE HAVE SEEN BEFORE SO THAT I CAN
-COMPARE THE CHANGE IN DISTRIBUTION
+% TODO: SHOULD I ONLY INVESTIGATE WORKLOADS WE HAVE SEEN BEFORE SO THAT I CAN
+% COMPARE THE CHANGE IN DISTRIBUTION
 
-\begin{figure}[H]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/mixed-running-pods.png}
     \caption{The number of Pods running on a Node during the
@@ -404,12 +404,12 @@ with long-running Pods on small percentage of the Nodes in the cluster. The
 default scheduler see that the Node's have enough advertised capacity, and
 therefore, allocate all the Pods as they arrive. This again results in a
 stampede of completions, and only a few Nodes continue to do work. However,
-CARICO's rate of Pod allocation remains consistent, ensuring that Nodes have a
+\textsc{Carico}'s rate of Pod allocation remains consistent, ensuring that Nodes have a
 close to constant number of Pods.
 
 \subsection{Resource Utilisation}
 
-\begin{figure}[H]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/mixed-util.png}
     \caption{The resource utilisation when scheduling a Job with 1000 Pods
@@ -422,9 +422,9 @@ close to constant number of Pods.
 Figure \ref{fig:mixed-util} shows the resource utilisation running the 500-20
 combined Jobs. For the same reasons as with the  ML workload, the default
 scheduler ends up with a low resource utilisation for the
-latter portion of the Job exeuction. Instead, CARICO achieves a more consistent
+latter portion of the Job exeuction. Instead, \textsc{Carico} achieves a more consistent
 resource utilisations, experiencing less of a fall in CPU utilisation near the
-end of the Job. In this scenario, CARICO achieves a more efficient allocation of
+end of the Job. In this scenario, \textsc{Carico} achieves a more efficient allocation of
 resources.
 
 \section{Workload Isolation}
@@ -460,7 +460,7 @@ response latency from the server. It shows how scheduling with the default
 scheduler using 100m CPU requests, resulting a significant shift in latency
 distribution. The median more than doubles and the distribution greatly shifted
 towards the tail: the maximum latency was $\approx \times7$ larger. On the other
-hand, when scheduling with CARICO, the median latency actually decreased.
+hand, when scheduling with \textsc{Carico}, the median latency actually decreased.
 Furthermore, while the tail distribution did increase, the max latency was only
 $\approx \times2$ bigger.
 
@@ -473,6 +473,11 @@ $\approx \times2$ bigger.
     able to achieve higher job throughput by packing more pods into nodes.
     }
 \end{tcolorbox}
+% You've identified good points to include. The trade-off between CARICO's QoS benefits and potentially slightly lower raw throughput in some specific (e.g., CPU-bound, perfectly requested) scenarios for kube-scheduler is a key discussion point.
+% Also consider limitations related to:
+% The current set of metrics (CPU, Memory) and how CARICO might behave with I/O or network-bound workloads.
+% The robustness of Kalman filter estimations to highly diverse pod types arriving in quick succession.
+% Scalability of the flat aggregation server (though likely fine for your 20-node setup).
 
 \section{Summary}
 \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]

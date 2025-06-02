@@ -143,7 +143,7 @@ cpu-intense Pi-2000 and a small ML workload (training and inference). I also
 decided to include measurements from \verb|/proc/pressure|. This investigation
 revealed that the relationship between the number of Pods running on
 a Node at a time and their completion time showed a close-to linear
-relationship. I hypothesise that this is becuase the cluster runs on virtual
+relationship. I hypothesise that this is because the cluster runs on virtual
 machines (VMs). Hypervisors, while abstracting hardware, can mask effects like
 cache contention and CPU thrashing. This means that high  CPU utilisation may
 not truly signify performance degradation. Thus, CPU utilisation alone is not a
@@ -241,7 +241,7 @@ surrounding Nodes will reflect a more costly CPU-focused workload. As a result,
 when the measured Node aggregates its local model, its new model will reflect
 this higher CPU usage with a larger $\sigma_1$ value. Since both the Node's
 current resource usageand the learned expected workload (reflected in $u_1$) are
-CPU-focused, the increased magnitdue of the expected workload (larger
+CPU-focused, the increased magnitude of the expected workload (larger
 $\sigma_1$) results in a smaller $k$ (fewer units of this workload can be
 added), and thus a lower Capacity signal.
 
@@ -259,7 +259,7 @@ Since the \textsc{Carico} Capacity signal incorporates current resource usage,
 newly scheduling (but not yet running) Pods do not immediately affect the
 Capacity signal. Therefore, a signal reservation mechanism is needed to prevent
 the scheduler from greedily overloading the Node with the current highest score.
-To handle varyinh Pod workloads, a dynamic estimation of a Pod's "signal cost"
+To handle varying Pod workloads, a dynamic estimation of a Pod's "signal cost"
 was required. The method also needed to handle concurrent Pod creation and
 deletions.
 
@@ -301,7 +301,7 @@ directly provides earlier warnings, reducing noise in calculations.
 \label{sec:estimating-cost}
 To produce a \textbf{reservable} signal, as per Section
 \ref{sec:spazio-cost-capacity}, \textsc{Carico} requires Nodes to estimate their
-bsaeline Capacity and Per-Pod-Cost. has the capability of estimating its
+baseline Capacity and Per-Pod-Cost. has the capability of estimating its
 capacity and per-Pod cost. I needed a streaming signal processing technique with
 a low-overhead and the ability to work with a dynamic system (handle changes in
 workloads over time). A Kalman filter \cite{} is a powerful algorithm used for

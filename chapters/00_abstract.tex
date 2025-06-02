@@ -1,6 +1,6 @@
 \chapter*{Abstract}
 
-Kubernetes is an existing widely-used open-source container orchestration system
+Kubernetes is a widely-used open-source container orchestration system
 that automates the deployment, scaling and management of containerized
 applications. Efficient scheduling is a critical component of Kubernetes,
 dictating an optimal allocation of pods across nodes to maximise a set of goals.
@@ -17,7 +17,7 @@ unexplored due to its complexity. Traditional bin-packing approaches are
 insufficient; instead, a telemetric-only scheduler requires a novel strategy to
 derive optimal plans from collected telemetry.
 
-PRONTO offers a promising direction. This federated, asynchronous, and
+\textsc{Pronto} offers a promising direction. This federated, asynchronous, and
 memory-limited algorithm schedules tasks across hundreds of workers. It enables
 individual workers to build local workload models from telemetry, which are then
 aggregated to form a global system view. For a telemetric-only scheduler,
@@ -26,17 +26,18 @@ centralizing all this data quickly becomes a bottleneck. By distributing the
 knowledge federation workload across the cluster, we can significantly reduce
 the load on a central scheduler.
 
-Unfortunately, PRONTO's direct application to Kubernetes proved unfeasible due
+Unfortunately, \textsc{Pronto}'s direct application to Kubernetes proved unfeasible due
 to its communication latency assumptions and early empirical findings.
-Consequently, I propose CARICO (Italian for "load"), a novel scheduler that
-shares PRONTO's core properties but accounts for communication latency. CARICO
-enables Nodes to perform FSVD on capacity-based metrics, modeling past resource
-usage to estimate future workload capacity.
+Consequently, I propose \textsc{Carico} (Italian for "load"), a novel scheduler that
+shares \textsc{Pronto}'s core properties but accounts for communication latency. \textsc{Carico}
+enables Nodes to perform Federated Singular Value Decomposition (FSVD) on
+capacity-based metrics, modeling past resource usage to estimate future
+workload capacity.
 
-To evaluate CARICO, I implemented a prototype within the Kubernetes ecosystem.
+To evaluate \textsc{Carico}, I implemented a prototype within the Kubernetes ecosystem.
 This involved extensive investigation into various metrics and filters to
-generate a precise capacity signal. Finally, I benchmarked CARICO's overall
+generate a precise capacity signal. Finally, I benchmarked \textsc{Carico}'s overall
 performance against the default kube-scheduler on a Kubernetes cluster with
-diverse workloads. While CARICO achieved comparable throughput, it significantly
+diverse workloads. While \textsc{Carico} achieved comparable throughput, it significantly
 outperformed kube-scheduler as a QoS scheduler, demonstrating lower Pod
 Completion times and improved workload isolation.
