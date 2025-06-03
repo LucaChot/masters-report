@@ -21,31 +21,112 @@ ecosystem. Finally, a review of related Kubernetes schedulers is provided to
 highlight the existing landscape and position this work within the current state
 of the art.
 
-\subsection{Datacenters}
-Datacenters house and offer computer resources like compute, memory, storage and
-network. They contain one or more clusters, where each cluster is a set of
-servers that can be considered asa  single compute system. These datacenters can
-scale in size from several tens of machines to hyperscale datacenters with
-hundreds and thousands of machines \cite{27,107}. Datacenters host a variety of
-workloads, comprising a mix of short and long jobs such as batch data analytics,
-interactive queries and machine learning \cite{27}. In this dissertation, I
-only consider data-parallel jobs as they are typicall high fanout jobs that
-require large amounts of compute resources, driving cluster utilisation
-\cite{6}.
+\section{Datacenter Scheduling}
+Modern datacenters are physical facilities that serve as the backbone for
+running diverse user applications and data-parallel computations. The increasing
+demand for computing resources like compute, memory, storage and network
+necessitates for ever larger datacenters. Hyperscale datacenters provided by
+cloud providers like Google, Amazon, Microsoft, and Meta house hundreds of
+thousands fo machines \cite{27, 107}. Datacenter scheduling is the fundamental
+task of allocating the available resource to workloads such that the their
+performance objectives are satisfied and the overall datacenter utilisation is
+kept high. Small deviations from the desired objectives can have substantial
+detrimental effects with millions of dallars in revenue potentially lost
+\cite{pronto}. This problem continues to grow in difficulty. Modern
+schedulers must map the ever-increasing input workload rate and ever-changing
+workload characteristics onto heterogeneous resources \cite{36, 115}. Moreover,
+they are expected to schedule for short user response time and high resource
+utilisation while also delivering high scheduling
+throughput~\cite{27,36,90,107,115}. This makes scheduling one of the most
+important and one of the most challenging aspects of datacenter operation.
 
-Job scheduling defines the way various resources like CPU, memory, disk and
-network are allocated to jobs in the datacenter. Schedulers consider one or more
-aspects of a job, such as resources requested, the number of tasks, estimated
-running time of each task, and the current state of resource allocation within
-the cluster. Schedulers are designed to meet a set of objectives defined by the
-datacenter provider. Example objectives include, job completion time, tail task
-latency, scheduling throughput, resource utilisation and workload heterogeneity.
-These goal can often conflict. For example, increasing scheduling throughput and
-reduced tail task latency often contradict each other. Attempting to schedule
-more tasks within a cluster can result in resource thrashing between the tasks
-and increase tail task latency.
+Multiple scheduler designs have been proposed to tackle this vast problem space.
+Scheduler architectures can be classified into the following:
+\begin{itemize}
+    \item \textbf{Centralised Schedulers:} Centralised schedulers like
+        Borg~\cite{}, Firmament~\cite{}, Kubernetes~\cite{}, and Quincy~\cite{}
+        consist of a single monolithic scheduler that executes the entire
+        scheduling logic to place tasks on available resources~\cite{}. This
+        design allows for more sophisticated policies to be applied. Machines in
+        the datacenter update their health and resources periodically, and this
+        information is then used for subsequent allocations. To overcome the
+        issue of a single point of failure (SOPF), centralised scheduelers are
+        often configured in a highly available topology~\cite{14, 109, 115},
+        where in the case of a failure, a leader election round is triggered.
 
-They can vary in size, ranging from small facilities with
+        Two-tiered scedulers are a variant of central schedulers where one
+        entity (master) manages resources of the datacenter and their
+        allocation, and the other carries out task placement. With
+        Mesos~\cite{60}, individual nodes offer available resources to the
+        master which then offers these to individual application schedulers.
+        This delegates resource allocation to schedulers with domain-specific
+        knowledge, while still being able to handle node failures through the
+        master.
+    \item \textbf{Decentralised Schedulers:} As datacenters continue to grow,
+        centralised schedulers become bottlenecks, facing increased overheads
+        collecting resource information, while simultaneously handling high
+        frequency job arrivals. To overcome this limitation, decentralised
+        schedulers like Apollo~\cite{} and Omega~\cite{} employ several
+        independent job schedulers which update a shared centralised state after
+        each placement decision. Due to its concurrent nature, commits can
+        result in conflicts~\cite{101} which must be handled carefully.
+    \item \textbf{Distributed Schedulers:} Like decentralised schedulers,
+        distributed schedulers have multiple indpendent scheduler instances.
+        However, they require no coordination or shared state. Schedulers like
+        Peacock~\cite{73} and Sparrow~\cite{90} aim to make scheduling decisions
+        as fast as possible, without the knowledge of the entire datacenter.
+        Although these schedulers are scalable and available owning to their
+        distributed nature, having a limited view of the datacenter can result
+        in sub-optimal placement choices.
+    \item \textbf{Hybrid Schedulers:} Hybrid schedulers like Dice~\cite{130},
+        Eagle~\cite{31}, Hydra~\cite{44} and Mercury~\cite{71} combine the properties of
+        centralised and distributed schedulers to achieve good placement at
+        scale and for high workload arrival rates. They typically employ
+        separate schedulers, each tasked with placing a different kind of job
+        into specially reserved sub-clusters~\cite{31,33,71,123}. Each scheduler
+        uses different scheduling policies, typically prioritising short job
+        placement for improved job completion times. Due to the requirement for
+        workload-specific parameters, sub-clusters may become under- or
+        over-utilised when workload characteristics change~\cite{46}.
+\end{itemize}
+
+Much resarch has also gone into developing different algorithms for scheduling.
+\textbf{Multi-dimensional resource allocation} transforms scheduling into a bin-packing
+problem. Schedulers like Quincy~\cite{126} and Jockey~\cite{136} allocate a
+uniform amount of resources to all tasks regardless of their needs, potentially
+hurting application performance. Other schedulers~\cite{56, 138, 134,149}, support
+user-specified job resource requirements, but risk users
+overestimating~\cite{123} or not knowing howing much to request~\cite{4}.
+Several methods have been proposed to improve the accuracy of job resource
+requests: \cite{138} profiles the job before actual execution, \cite{56,140}
+decreases or redistributes the initial resource allocation after an observation
+period, \cite{142, 143, 144} analyse historical traces of jobs to build a
+performance model of the expected performance based on the job resource
+allocation.
+
+\textbf{Constraint handling} schedulers allows tasks to have placement constraints, such
+as, requiring specialist hardware like a Tensor Processing
+Units~\cite{146}(TPUs). Kubernetes~\cite{} supports both hard (mandatory) and
+soft (not mandatory but preffered) constraints, as well as
+affinity/anti-affinity constraints.
+
+% Is this enough, should I also talk about task interference, data locality, and
+% low placement latency
+
+Finally, schedulers like \cite{Boutin-et-al.,-2014;-Karanasos-et-al.,-2015;-Verma-et-al.,-2015;-Gog-et-al.,-2016;-Mao-et-al.,-2019;-Ousterhout-et-al.,-2013b}
+rely on \textbf{predictions of node's future resource
+availablilty} to avoid saturation and efficently utilise resources across data
+center nodes. Approaches range from probing available nodes on an on-demand
+basis~\cite{Ousterhout-et-al.,-2013b;-Verma-et-al.,-2015} to collectively
+generated telemetry across the datacenter and using offline machine learning
+prediction to tackle oversubscription~\cite{Cortez-et-al.,-2017}. While it has
+been shown that schedulers generate improved holistic models for efficient
+provision when given access to performance data from all data center
+nodes~\cite{Verma-et-al.,-2015;-Gog-et-al.,-2016;-Boutin-et-al.,-2014;-Mao-et-al.,-2019;-Cortez-et-al.,-2017}, they typically operate on a near offline
+fashion with a high network cost, making them slow to react in real-time to
+performance problems. \textsc{Pronto}~\cite{grammenos_pronto_2021} pioneers
+a federated approach to analysing real-time telemetry from virtualised data
+center nodes for online task scheduling.
 
 \section{Kubernetes}
 
@@ -471,21 +552,6 @@ scheudling within a network of nodes that might not be geographically dispersed
 or owned by different entities, its federated learning approach to sharing
 knowledge through aggregated iterates is relevant to discussions around
 decentralised control and coordination in distributed infrastructures.
-
-\subsection{Online, Real-Time, and Streaming Scheduling}
-TODO: THIS SECTION FEELS WEAK, I MAY DELETE
-\textsc{Pronto} is designed for online task scheduling and operates on real-time
-performance. As a streaming algorithm, \textsc{Pronto} processes incoming data
-in a single pass without storing historical information, enabling Nodes to make
-immediate scheduling decisions about incoming workloads. While the default
-Kubernetes scheduler reacts to changes, it performs bin-packing with statically
-defined resource requests and capacity. Research outside of Kubernetes has
-repeatedly shown that analysing large-scale performance data in near real-time
-for efficient scheduling is difficult~\cite{grammenos_pronto_2021}. As a result,
-\textsc{Pronto}'s explicit streaming algorithm enabling low-latency scheduling
-decisions distinguishes it from approaches that might involve more substantial
-processing pipelines, offline techniques or the reliance on potentially stale
-cached information.
 
 \subsection{Performance-Aware and Predictive Scheduling}
 As a performance-aware scheduler, \textsc{Pronto} employs

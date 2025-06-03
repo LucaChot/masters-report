@@ -1,4 +1,4 @@
-\chapter{Introduction (961)}
+\chapter{Introduction}
 \label{firstcontentpage} % start page count here
 
 % This is the introduction where you should introduce your work. In
@@ -31,6 +31,35 @@
 % utilisation metrics which can be overly sensitive and generate false
 % notifications of full capacity.
 %
+Datacenters serve as the foundational infrastructure for modern computing,
+housing hundreds of thousands of machines that underpin diverse user
+applications and data-parallel computations. The escalating demand for compute,
+memory, storage, and network resources necessitates increasingly large and
+complex datacenters. Within these environments, datacenter scheduling is a
+critical task: it involves allocating available resources to workloads to
+ensure performance objectives are met while maintaining high overall datacenter
+utilization. The difficulty of this problem is compounded by ever-increasing
+input workload rates, dynamically changing workload characteristics, and the
+heterogeneity of resources. Schedulers are expected to deliver short user
+response times, high resource utilization, and high scheduling throughput
+simultaneously, making it one of the most challenging aspects of datacenter
+operation.
+
+To address these challenges, various scheduler architectures have emerged:
+i) centralised schedulers, such as Borg~\cite{} or Kubernetes~\cite{}, that execute all scheduling
+logic from a sinle point, ii) decentralised schedulers~\cite{apollo} which aimed to solve
+central schedulers scalability issue by dividing the task of allocation across
+independent processes, and iii) distributed schedulers, like Sparrow~\cite{},
+which remove the need for coordination or shared state. Numerous algorithms have
+been devised to solve task scheduling. Multi-dimensional
+resource allocation simplifies scheduling to bin packing. While many
+schedulers~\cite{borg, kube} use user-provided job resource requests, the issue
+of inaccurate resource estimation has necessitated for more complex
+techniques~\cite{}. On the other hand, other schedulers aim to predict the
+availability of node resources. These schedulers initially consisted of those
+that probed a portion of the datacenter on-demand, and those that performed
+offline machine learning on telemetry from the entire datacenter. As a result,
+these methods had to trade responsiveness for a holistic model of the datacenter.
 
 Kubernetes has firmly established itself as the leading platform for container
 orchestration, experiencing widespread adoption across diverse industries and
@@ -43,10 +72,7 @@ computing~\cite{cloudraft} end serverless functions~\cite{knative, openwhisk},
 solidifies Kubernetes' position as a cornerstone of the cloud-native industry.
 
 A core function of container orchestration is the efficient scheduling of
-containers across a cluster. Kubernetes performs online scheduling, a
-particularly challenging subset of the NP-hard task-scheduling problem. In
-online scheduling, tasks must be allocated without prior knowledge of future
-arrivals~\cite{pruhs2004online}. In this dynamic and resource-intensive
+containers across a cluster. In this dynamic and resource-intensive
 landscape, efficient online scheduling is paramount for both performance and
 cost-effectiveness. Poor scheduling decisions can lead to significant
 infrastructure waste, directly impacting an organization's bottom line.
