@@ -103,33 +103,43 @@ During the measurements with the default Kubernetes scheduler, I used the
 following CPU requests: 100m, 200m, 500m, 1000m. The results are given in Table
 \ref{tab:pi-2000-throughput}
 
-\begin{table}[ht!]
-\centering
-    \begin{tabular}{|l|r|c|c|c|c|c|}
-    \hline
-    \textbf{Scheduler} & \textbf{Requested} & \multicolumn{5}{c|}{\textbf{Job Completion (s)}} \\
-    \cline{2-7}
-    &  \textbf{CPU} & \textbf{100 Pods} & \textbf{250 Pods} & \textbf{500 Pods} & \textbf{750 Pods} & \textbf{1000 Pods} \\
-    \hline
-    Default & 100m & 15.7 $\pm$ 0.6 & 31.7 $\pm$ 2.1 & 56 $\pm$ 1.7 & 84.7 $\pm$
-        0.6 & 112 $\pm$ 0.0 \\
-    Default & 200m & 15.7 $\pm$ 0.7 & 30.7 $\pm$ 0.6 & 55 $\pm$ 1 & 79 $\pm$ 0.0
-        & 103 $\pm$ 1 \\
-    Default & 500m & 15.7 $\pm$ 1.2 & 32 $\pm$ 2.6 & 57.7 $\pm$ 0.6 & 81 $\pm$ 2
-        & 104 $\pm$ 2.1 \\
-    Default & 1000m & 21 $\pm$ 2.0 & 54.7 $\pm$ 0.6 & 96 $\pm$ 2.6 & 133 $\pm$
-        0.6 & 175 $\pm$ 1 \\
-    \textsc{Carico} &  & 20.3 $\pm$ 0.6 & 35.3 $\pm$ 0.6 & 60.3 $\pm$ 2.5 & 89 $\pm$ 2 &
-        109$\pm$ 1 \\
-    \hline
-    \end{tabular}
+% \begin{table}[ht!]
+% \centering
+    % \begin{tabular}{|l|r|c|c|c|c|c|}
+    % \hline
+    % \textbf{Scheduler} & \textbf{Requested} & \multicolumn{5}{c|}{\textbf{Job Completion (s)}} \\
+    % \cline{2-7}
+    % &  \textbf{CPU} & \textbf{100 Pods} & \textbf{250 Pods} & \textbf{500 Pods} & \textbf{750 Pods} & \textbf{1000 Pods} \\
+    % \hline
+    % Default & 100m & 15.7 $\pm$ 0.6 & 31.7 $\pm$ 2.1 & 56 $\pm$ 1.7 & 84.7 $\pm$
+        % 0.6 & 112 $\pm$ 0.0 \\
+    % Default & 200m & 15.7 $\pm$ 0.7 & 30.7 $\pm$ 0.6 & 55 $\pm$ 1 & 79 $\pm$ 0.0
+        % & 103 $\pm$ 1 \\
+    % Default & 500m & 15.7 $\pm$ 1.2 & 32 $\pm$ 2.6 & 57.7 $\pm$ 0.6 & 81 $\pm$ 2
+        % & 104 $\pm$ 2.1 \\
+    % Default & 1000m & 21 $\pm$ 2.0 & 54.7 $\pm$ 0.6 & 96 $\pm$ 2.6 & 133 $\pm$
+        % 0.6 & 175 $\pm$ 1 \\
+    % \textsc{Carico} &  & 20.3 $\pm$ 0.6 & 35.3 $\pm$ 0.6 & 60.3 $\pm$ 2.5 & 89 $\pm$ 2 &
+        % 109$\pm$ 1 \\
+    % \hline
+    % \end{tabular}
+    % \caption{Job Completion of Job deployments with different Pod counts. Each
+    % Pod executed \texttt{bpi(2000)}. For the default scheduler, the requested
+    % resources are also given}
+    % \label{tab:pi-2000-throughput}
+% \end{table}
+%
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=\textwidth]{images/pi-job-completion.pdf}
     \caption{Job Completion of Job deployments with different Pod counts. Each
     Pod executed \texttt{bpi(2000)}. For the default scheduler, the requested
     resources are also given}
     \label{tab:pi-2000-throughput}
-\end{table}
+\end{figure}
 
-From Table \ref{tab:pi-2000-throughput}, we can see how much the performance of
+From Figure \ref{tab:pi-2000-throughput}, we can see how much the performance of
 the default scheduler varies depending on the amount of CPU time requested.
 Over-estimating requests can result in the CPU being underutilised, while
 under-estimating can result in too many Pods running on a Node at once. With
@@ -223,23 +233,33 @@ be detrimental to Job Completion, as terminated Pods results in wasted
 computations.
 
 \subsection{Throughput}
-\begin{table}[ht!]
-\centering
-    \begin{tabular}{|l|r|r|c|c|}
-    \hline
-    \textbf{Scheduler} & \multicolumn{2}{c|}{\textbf{Requested}} &
-        \multicolumn{2}{c|}{\textbf{Job Completion (s)}} \\ \cline{2-5}
-    &  \textbf{CPU} & \textbf{Memory} & \textbf{100 Pods} & \textbf{200 Pods} \\
-    \hline
-        Default & 200m & 750Mi & 144.3 $\pm$ 0.6 & 362 $\pm$ 20.4\\
-        \textsc{Carico} &  &  & 189 $\pm$ 4.36 & 353.3 $\pm$ 12.7 \\
-    \hline
-    \end{tabular}
+% \begin{table}[ht!]
+% \centering
+    % \begin{tabular}{|l|r|r|c|c|}
+    % \hline
+    % \textbf{Scheduler} & \multicolumn{2}{c|}{\textbf{Requested}} &
+        % \multicolumn{2}{c|}{\textbf{Job Completion (s)}} \\ \cline{2-5}
+    % &  \textbf{CPU} & \textbf{Memory} & \textbf{100 Pods} & \textbf{200 Pods} \\
+    % \hline
+        % Default & 200m & 750Mi & 144.3 $\pm$ 0.6 & 362 $\pm$ 20.4\\
+        % \textsc{Carico} &  &  & 189 $\pm$ 4.36 & 353.3 $\pm$ 12.7 \\
+    % \hline
+    % \end{tabular}
+    % \caption{Job Completion of Job deployments with different Pod counts. Each
+    % Pod executed a small ML workload. For the default scheduler, the requested
+    % resources are also given}
+    % \label{tab:ml-throughput}
+% \end{table}
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=\textwidth]{images/ml-job-completion.pdf}
     \caption{Job Completion of Job deployments with different Pod counts. Each
     Pod executed a small ML workload. For the default scheduler, the requested
     resources are also given}
     \label{tab:ml-throughput}
-\end{table}
+\end{figure}
+
 The Job Completions from the experiment are given in Table
 \ref{tab:ml-throughput}. \textsc{Carico} achieves a worse performance in the smaller 100
 Pod Job, but actually overtakes the default Kubernetes scheduler with the 200
@@ -328,28 +348,39 @@ To thoroughly evaluate \textsc{Carico} in this scenario, I varied the distributi
 Pods from each Job. The observed Job Completions are given in Table
 \ref{tab:mixed-throughput}.
 
-\begin{table}[ht!]
-\centering
-    \begin{tabular}{|l|c|c|c|}
-    \hline
-    \textbf{Scheduler} & \multicolumn{2}{c|}{\textbf{Job Size}} &
-        \textbf{Job Completion (s)} \\ \cline{2-3}
-        &  \texttt{bpi(2000)} & \texttt{ML} & \\
-    \hline
-        Default & 500 & 20 & 105.7 $\pm$ 10.6 \\
-        \textsc{Carico} & 500 & 20 & 88.7 $\pm$ 2.5 \\
-        Default & 250 & 50 & 118 $\pm$ 4.58 \\
-        \textsc{Carico} & 250 & 50 & 115.7 $\pm$ 0.58 \\
-        Default & 100 & 100 & 149 $\pm$ 0.0 \\
-        \textsc{Carico} & 100 & 100 & 192 $\pm$ 4.0 \\
-    \hline
-    \end{tabular}
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=\textwidth]{images/mixed-job-completion.pdf}
     \caption{Job Completion of multi-resource Job deployments with different Pod
     counts. For the default scheduler, \texttt{bpi(2000)} Pods requested 100
     milliseconds of CPU and ML Pods requested 200 milliseconds CPU and 750Mi of
     memory}
     \label{tab:mixed-throughput}
-\end{table}
+\end{figure}
+
+% \begin{table}[ht!]
+% \centering
+    % \begin{tabular}{|l|c|c|c|}
+    % \hline
+    % \textbf{Scheduler} & \multicolumn{2}{c|}{\textbf{Job Size}} &
+        % \textbf{Job Completion (s)} \\ \cline{2-3}
+        % &  \texttt{bpi(2000)} & \texttt{ML} & \\
+    % \hline
+        % Default & 500 & 20 & 105.7 $\pm$ 10.6 \\
+        % \textsc{Carico} & 500 & 20 & 88.7 $\pm$ 2.5 \\
+        % Default & 250 & 50 & 118 $\pm$ 4.58 \\
+        % \textsc{Carico} & 250 & 50 & 115.7 $\pm$ 0.58 \\
+        % Default & 100 & 100 & 149 $\pm$ 0.0 \\
+        % \textsc{Carico} & 100 & 100 & 192 $\pm$ 4.0 \\
+    % \hline
+    % \end{tabular}
+    % \caption{Job Completion of multi-resource Job deployments with different Pod
+    % counts. For the default scheduler, \texttt{bpi(2000)} Pods requested 100
+    % milliseconds of CPU and ML Pods requested 200 milliseconds CPU and 750Mi of
+    % memory}
+    % \label{tab:mixed-throughput}
+% \end{table}
+
 The Job Completions from the experiment are given in Table
 \ref{tab:mixed-throughput}. \textsc{Carico} achieves a higher throughput during the
 500-20 and 250-50 combined workloads. However, the final 100-100, we see how the

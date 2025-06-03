@@ -17,6 +17,9 @@ Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Database file #1: report.bib
 Warning--I didn't find a database entry for ""
+Warning--I didn't find a database entry for "apollo"
+Warning--I didn't find a database entry for "borg"
+Warning--I didn't find a database entry for "kube"
 Warning--I didn't find a database entry for "27"
 Warning--I didn't find a database entry for "107"
 Warning--I didn't find a database entry for "pronto"
@@ -63,45 +66,45 @@ Warning--I didn't find a database entry for "Verma-et-al."
 Warning--I didn't find a database entry for "-2016;-Boutin-et-al."
 Warning--I didn't find a database entry for "-2014;-Mao-et-al."
 Warning--I didn't find a database entry for "-2019;-Cortez-et-al."
-You've used 34 entries,
+You've used 33 entries,
             2616 wiz_defined-function locations,
-            830 strings with 11602 characters,
-and the built_in function-call counts, 11681 in all, are:
-= -- 1198
-> -- 279
+            829 strings with 11536 characters,
+and the built_in function-call counts, 11441 in all, are:
+= -- 1180
+> -- 267
 < -- 12
-+ -- 97
-- -- 63
-* -- 451
-:= -- 1330
-add.period$ -- 110
-call.type$ -- 34
-change.case$ -- 33
++ -- 93
+- -- 60
+* -- 445
+:= -- 1301
+add.period$ -- 108
+call.type$ -- 33
+change.case$ -- 32
 chr.to.int$ -- 0
-cite$ -- 34
-duplicate$ -- 406
-empty$ -- 1451
-format.name$ -- 63
-if$ -- 3473
+cite$ -- 33
+duplicate$ -- 401
+empty$ -- 1419
+format.name$ -- 60
+if$ -- 3400
 int.to.chr$ -- 0
-int.to.str$ -- 34
+int.to.str$ -- 33
 missing$ -- 20
-newline$ -- 170
-num.names$ -- 24
-pop$ -- 360
+newline$ -- 166
+num.names$ -- 23
+pop$ -- 348
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 966
+skip$ -- 945
 stack$ -- 0
 substring$ -- 447
-swap$ -- 143
+swap$ -- 142
 text.length$ -- 18
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 0
-while$ -- 69
-width$ -- 36
-write$ -- 359
-(There were 47 warnings)
+while$ -- 68
+width$ -- 35
+write$ -- 351
+(There were 50 warnings)
