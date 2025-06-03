@@ -157,9 +157,18 @@ scheduling decisions. Containers also contain a \verb|spec| field which
 specifies \verb|request| and \verb|limits|. The \texttt{request} field behaves
 as a set of minimum requirements and is used when scheduling Pods. In contrast,
 the \texttt{limits} field is used by kernel of the Node to throttle a
-container's resource usage. \verb|status| describes the current state of the
-object, supplied and updated by the Kubernetes system. These fields are core to
-scheduling in Kubernetes.
+container's resource usage. In Kuberentes, the resource units for
+\texttt{resource} and \texttt{limits} are the following:
+\begin{itemize}
+    \item \textbf{CPU:} The metric used is \textit{cpu} units, where 1 cpu unit
+        is equivalent to a 1 physical/virtual core. Fractional requests are
+        permitted with the notation $x$m; $100$m can be read as ``one hundred
+        millicpu".
+    \item \textbf{Memory:} This is measured in bytes. Kubernetes also allows the
+        use of quantity suffixes, such as, k, M, G, Ki, Mi, Gi.
+\end{itemize}
+\texttt{status} describes the current state of the object, supplied and updated
+by the Kubernetes system. These fields are core to scheduling in Kubernetes.
 
 \subsection{Scheduling in Kubernetes}
 In Kubernetes, Pods are the smallest deployable units of computing that you can

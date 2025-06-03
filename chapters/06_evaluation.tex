@@ -1,41 +1,61 @@
 \chapter{Evaluation}
 
-This section is focused on the empirical evaluation of \textsc{Carico} as a Kubernetes
-scheduler. As I was unable to find any telemetric-only schedulers, I decided to
-compare \textsc{Carico} against the default Kubernetes scheduler throughout this section.
-\texttt{kube-scheduler} is an industry-standard scheduler that was built upon
-the lessons learnt from Borg \cite{}, and thus, has been thoroughly optimised
-and battle tested. As \texttt{kube-scheduler} is a Pod description-based
-scheduler, I use mutliple different resource requests to highlight how the
-performance achieved can vary depending on description.
+This section is focused on the empirical evaluation of \textsc{Carico} as a
+Kubernetes scheduler, comparing it against the default industry-standard
+\texttt{kube-schedulers}. I was unable to compare \textsc{Carico} against any
+similar telemetric-only schedulers due to their limited number and time
+constraints. For the evaluation, I use a set of common scheduling objectives
+used by datacenter providers~\cite{thesis}:
 
-The chapter is divided into the following sections:
-\textbf{Overhead - Section \ref{sec:eval-overhead}:} I measure the computational overhead
-incurred from running the \textsc{Carico} Pods on every Node. To ascertain this effect, I
-complare the Job Completion time with and without the deployment of the \textsc{Carico}
-Pod DaemonSet
+\textbf{Job Completion - Section \ref{sec:eval-job-completion}:}\\
+Schedulers often aim to reduce the time it takes for a job or a set of jobs to
+complete. In Kubernetes, Jobs are specified by a template of the Pods to be
+executed, the total number of Pods to complete (\texttt{completions}) and the
+maximum number of Pods running at once (\texttt{parallelism}). Job completion
+is defined as the time between a Job object being published to the Kubernetes
+API and the time when the last Pod of the Job completes. During the
+experiments, I set \texttt{parallelism} to \texttt{completions} so that only
+\texttt{kube-scheduler}'s decisions impact Job completion.
 
-\textbf{Different Workloads - Sections
-\ref{sec:eval-cpu-centric},\ref{sec:eval-mem-centric}, \ref{sec:eval-mixed}:}
-These sections investigate the performance of \textsc{Carico} when deploying different
-workloads. For each workload, I investigate four metrics: Job Completion, Number
-of Running Pods, Pod Completion and Resource Usage. Job Completion measures the
-time it takes for all the Pods specified by a Job to complete. This then acts as
-a strong indicator of overall throughput of a scheduler. The Number of Running
-Pods will be used to explain the achieved Job Completion. Pod Completion instead
-focuses on the distribution of the time it takes for the Pods to complete. The
-distribution gives an indication of the amount of contention that occurs during
-the deployment of the Job. A tail-heavy distribution indicates high levels of
-contention and that the scheduler is overloading a Node. Finally, resource
-utilisation will focus on CPU and Memory utilisation. I decided to only measure
-these two resources as they are the only two that are currently considered in
-the scheduling decisions made by both \textsc{Carico} and the default Kubernetes
-scheduler.
+\textbf{Pod Completion - Section~\ref{sec:eval-pod-completion}:}\\
+The goal of many datacenter schedulers is to complete jobs as fast as possible
+so that resources are freed for subsequent jobs. For this section, I
+investigate the distribution of Pod Completion, the time it takes from when a
+Pod starts running to when it completes. In addition, I explain my findings
+using traces of the number of concurrent Pods on each Node during job
+execution.
 
-\textbf{Workload Isolation - Section \ref{sec:workload-isolation}:} In this
-section I investigate the workload-isolation provided by \textsc{Carico} and the default
-Kubernetes scheduler. Workload isoolation is considered a core component of QoS
-scheduling, and thus is a useful metric to observe.
+\textbf{Resource Utilisation - Section~\ref{sec:eval-util}:}\\
+Since resources are expensive, datacenters aim to ensure that resources are
+well utilised with efficient placements. Over-utilisation can result in large
+amounts of resource thrashing, which wastes resources and hurts a datacenters
+proffitability. As \textsc{Carico} currently only uses CPU and memory metrics
+for scheduling, I only measured the utilisation of those resources during the
+exection of Jobs.
+
+\textbf{Workload Heterogeneity - Section~\ref{sec:eval-hetero}:}\\
+As outlined in \ref{sec:background-datacenters}, datacenters must handle
+workloads with different characteristics, such as, resource usage and running
+times. In this section, I evaluate how well \textsc{Carico} is able to handle
+mutliple Jobs with different characteristics.
+
+\textbf{Workload Isolation - Section~\ref{sec:eval-isolation}:}\\
+Datacenters have to deal with jobs with different QoS requirements. One of
+these requirements is workload isolation: the execution of one Job will not
+interfere with the execution of another. With this property, users can be
+guaranteed a minimum level of quality.
+
+\textbf{Overhead - Section~\ref{sec:eval-overhead}:}\\
+Due to the limited number of resources that need to be shared between users,
+datacenter providers aim to mitigate the overhead from scheduling. A lower
+overhead means more resources are available for users and providers can achieve
+higher profits margins. For this experiment, I measure the overhead incurred
+from running the DaemonSet of \textsc{Carico} Pods.
+
+To ensure a fair comparison between \textsc{Carico} (telemetric-only scheduler)
+and \texttt{kube-scheduler} (resource description-based scheduler), I use a
+range of resource requests with \texttt{kube-scheduler} to highlight how much
+the performance can vary with different resource request.
 
 \section{Evaluation Setup}
 These experiments ran on a Kubernetes cluster containing 20 virtual machines
@@ -51,57 +71,49 @@ During the evaluation, I use a Prometheus deployment \cite{} to collect various
 statistics, such as running Pod count, resource utilisation and Kubernetes
 object completions.
 
-\section{\textsc{Carico} Overhead}
-\label{sec:eval-overhead}
-To measure the overhead incurred from running the \textsc{Carico} pods on the Nodes, I
-compared the completion time of Jobs when running on Nodes with and without the
-\textsc{Carico} deployment. I considered easuring resource utilisation on a Node with
-just the \textsc{Carico} Pod running, but much of the behaviour of the
-\textsc{Carico} Pod occurs during container events. As a result, the measured overhead
-would not represent the entire impact of the \textsc{Carico} Pod. Instead, by measuring
-the overhead over Jobs, we aggregate the impact of \textsc{Carico} across multiple
-container events, providing a more holistic view of its impact.
-
-\begin{table}[ht!]
-\centering
-    \begin{tabular}{|c|c|}
-    \hline
-    \textbf{Number of Pods} & \textbf{\% Overhead with \textsc{Carico}} \\
-    \hline
-        100 & -2.33 $\pm$ 3.29 \\
-        250 & -1.19 $\pm$ 2.44 \\
-        500 & 4.84  $\pm$ 1.25 \\
-        750 & 1.69  $\pm$ 0.42 \\
-        1000 & 2.27  $\pm$ 0.66 \\
-    \hline
-    \end{tabular}
-    \label{tab:overhead}
-    \caption{The overhead incurred when running \textsc{Carico} Pods on Nodes during the
-    executing of Jobs with varying Pod counts. Each Pod executed
-    \texttt{bpi(2000)} and requested 200 milliseconds of CPU time.}
-\end{table}
-
-To measure \textsc{Carico}'s overhead, I used Pod's executing \texttt{bpi(2000)}. Table
-\ref{tab:overhead} presents the relative change in Job Completion time with
-\textsc{Carico} Pods running on the Nodes. We can see that the Job Completion time of
-smaller Jobs are more noisy, therefore, resulting in an observed decrease in Job
-Completion times. However, with larger and more stable Jobs, the overhead from
-\textsc{Carico} is more visible. From these observations we can conclude that \textsc{Carico} has
-$\approx$ 2\% overhead.
 %
 % For any practical projects, you should almost certainly have some kind
 % of evaluation, and it's often useful to separate this out into its own
 % chapter.
-\section{CPU-centric Workloads}
-\label{sec:eval-cpu-centric}
-For this experiment, I used a CPU-heavy workload: Pods calculatig $\pi$ to 2000
-digits (\texttt{bpi(2000)}). This simple workload helps visualise the impact of
-combining CPU Pressure with CPU Utilisation.
 
-\subsection{Throughput}
-During the measurements with the default Kubernetes scheduler, I used the
-following CPU requests: 100m, 200m, 500m, 1000m. The results are given in Table
-\ref{tab:pi-2000-throughput}
+\section{Experimental Workloads}
+During the experiments I used very short-lived workloads; workloads that take
+less than a minute to complete. While datacenters can expect to receive
+longer-running workloads, using them in the evaluation was not feasilble due to
+limited time and the need to run experiments multiple times. Short-lived tasks
+can still provide valuable insights into the performance of a scheduler. Due
+to their short completion time, the cost of poor scheduling decisions becomes
+more significant and easier to observe.
+
+During this evaluation, I used two types of workloads:
+\begin{enumerate}
+    \item \texttt{pi-2000}: A short-lived CPU-focused workload where a Pod
+        computes the value of $\pi$ to 2000 decimal points.
+    \item \texttt{sklearn}: A longer-running workload with a larger memory
+        footprint. This Pod executes a script which uses
+        \texttt{sklearn} which trains a small neural network classifier ($512$
+        features, $16$ classes, $8$ hidden layers each containing $1024$
+        neurons) on 5000 randomly generated samples before running inference on
+        another set of 5000 randomly generated samples.
+\end{enumerate}
+Investigating metrics when running \texttt{pi-2000} and \texttt{sklearn} Jobs
+separately demonstrates how \textsc{Carico} handles opposing resource usage
+characteristics (CPU-focused vs memory-focused). Furthermore, when executing
+both these Jobs concurrently, the difference in runtime helps investigate how
+\textsc{Carico} also handles workloads with differnt running times.
+
+In this experiment, I use a Job that specifies Pods that performed a small ML
+workload. This workload uses a significant amount of memory, which unlike CPU,
+must be carefully handled. If we increase the number of processes on a
+fully-utilised CPU, it only results in each process having a smaller portion of
+CPU time and degrading its performance. On the other hand, memory is less
+forgiving as once memory runs out, the kernel begins OOM killing processes. This
+be detrimental to Job Completion, as terminated Pods results in wasted
+computations.
+
+
+\section{Job Completion}
+\label{sec:eval-job-completion}
 
 % \begin{table}[ht!]
 % \centering
@@ -136,9 +148,13 @@ following CPU requests: 100m, 200m, 500m, 1000m. The results are given in Table
     \caption{Job Completion of Job deployments with different Pod counts. Each
     Pod executed \texttt{bpi(2000)}. For the default scheduler, the requested
     resources are also given}
-    \label{tab:pi-2000-throughput}
+    \label{fig:pi-2000-throughput}
 \end{figure}
 
+Figure \ref{fig:pi-2000-throughput} demonstrates the Job completion of
+\texttt{pi-2000} with different Pod counts. We can observe that \textsc{Carico}
+is able to consistently achieve comparable Job completions (within $\approx$
+10\% of the optimal run with \texttt{kube-scheduler}).
 From Figure \ref{tab:pi-2000-throughput}, we can see how much the performance of
 the default scheduler varies depending on the amount of CPU time requested.
 Over-estimating requests can result in the CPU being underutilised, while
@@ -150,11 +166,42 @@ showed how with \texttt{bpi(2000)} Pods, these metrics indicated full capacity
 when running 4-8 Pods. As the capacity signal of a Node is tied to these
 metrics, the Node's will never advertise more capacity than $\approx$ 8 Pods.
 
-TODO: POTENTIALLY MENTION HOW 1000M AND 500M CORRESPOND TO THE LIMIT OF USING
-CPU UTILISATION AND CPU PRESSURE
+% \begin{table}[ht!]
+% \centering
+    % \begin{tabular}{|l|r|r|c|c|}
+    % \hline
+    % \textbf{Scheduler} & \multicolumn{2}{c|}{\textbf{Requested}} &
+        % \multicolumn{2}{c|}{\textbf{Job Completion (s)}} \\ \cline{2-5}
+    % &  \textbf{CPU} & \textbf{Memory} & \textbf{100 Pods} & \textbf{200 Pods} \\
+    % \hline
+        % Default & 200m & 750Mi & 144.3 $\pm$ 0.6 & 362 $\pm$ 20.4\\
+        % \textsc{Carico} &  &  & 189 $\pm$ 4.36 & 353.3 $\pm$ 12.7 \\
+    % \hline
+    % \end{tabular}
+    % \caption{Job Completion of Job deployments with different Pod counts. Each
+    % Pod executed a small ML workload. For the default scheduler, the requested
+    % resources are also given}
+    % \label{tab:ml-throughput}
+% \end{table}
 
-\subsection{Pod Completions}
-\begin{table}[ht!]
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=\textwidth]{images/ml-job-completion.pdf}
+    \caption{Job Completion of Job deployments with different Pod counts. Each
+    Pod executed a small ML workload. For the default scheduler, the requested
+    resources are also given}
+    \label{tab:ml-throughput}
+\end{figure}
+
+The Job Completions from the experiment are given in Table
+\ref{tab:ml-throughput}. \textsc{Carico} achieves a worse performance in the smaller 100
+Pod Job, but actually overtakes the default Kubernetes scheduler with the 200
+Pod Job.
+
+\section{Pod Completion}
+\label{sec:eval-pod-completion}
+
+\begin{table}[h!]
 \centering
     \begin{tabular}{|l|r|c|c|c|c|c|c|c|}
     \hline
@@ -200,72 +247,6 @@ a relatively constant number of Pods. However, the default scheduler with 500m
 Pods takes the edge in terms of throughput as it achieves a higher number of
 running Pods per Node.
 
-
-TODO: SHOULD I TALK ABOUT NOT OVERPROVISIONING AS MEMORY USES OOM KILLS IF FULL
-AND THEREFORE RISKED CORRECTNESS OF SIGNAL
-
-\subsection{Resource Utilisation}
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\textwidth]{images/pi-util.pdf}
-    \caption{the resource utilisation when scheduling a job with 1000 pods
-    executing \texttt{bpi(2000)}. the top figure gives the resource utilisation
-    when scheduling with the default kubernetes scheduler. The bottom figure
-    gives the resource utilisation when scheduling with spazio.}
-    \label{fig:pi-2000-1000x-pod-util}
-\end{figure}
-
-Figure \ref{fig:pi-2000-1000x-pod-util} shows the resource utilisation during
-the execution of a Job with 1000 Pods. The default Kubernetes scheduler with
-100m CPU requests achieves 100\% CPU utilisation due to the large number of Pods
-running on each Node. The resulting allocation even results in a visible
-increase in the Memory usage.
-
-\section{Memory-centric Workloads}
-\label{sec:eval-mem-centric}
-In this experiment, I use a Job that specifies Pods that performed a small ML
-workload. This workload uses a significant amount of memory, which unlike CPU,
-must be carefully handled. If we increase the number of processes on a
-fully-utilised CPU, it only results in each process having a smaller portion of
-CPU time and degrading its performance. On the other hand, memory is less
-forgiving as once memory runs out, the kernel begins OOM killing processes. This
-be detrimental to Job Completion, as terminated Pods results in wasted
-computations.
-
-\subsection{Throughput}
-% \begin{table}[ht!]
-% \centering
-    % \begin{tabular}{|l|r|r|c|c|}
-    % \hline
-    % \textbf{Scheduler} & \multicolumn{2}{c|}{\textbf{Requested}} &
-        % \multicolumn{2}{c|}{\textbf{Job Completion (s)}} \\ \cline{2-5}
-    % &  \textbf{CPU} & \textbf{Memory} & \textbf{100 Pods} & \textbf{200 Pods} \\
-    % \hline
-        % Default & 200m & 750Mi & 144.3 $\pm$ 0.6 & 362 $\pm$ 20.4\\
-        % \textsc{Carico} &  &  & 189 $\pm$ 4.36 & 353.3 $\pm$ 12.7 \\
-    % \hline
-    % \end{tabular}
-    % \caption{Job Completion of Job deployments with different Pod counts. Each
-    % Pod executed a small ML workload. For the default scheduler, the requested
-    % resources are also given}
-    % \label{tab:ml-throughput}
-% \end{table}
-
-\begin{figure}[ht!]
-    \centering
-    \includegraphics[width=\textwidth]{images/ml-job-completion.pdf}
-    \caption{Job Completion of Job deployments with different Pod counts. Each
-    Pod executed a small ML workload. For the default scheduler, the requested
-    resources are also given}
-    \label{tab:ml-throughput}
-\end{figure}
-
-The Job Completions from the experiment are given in Table
-\ref{tab:ml-throughput}. \textsc{Carico} achieves a worse performance in the smaller 100
-Pod Job, but actually overtakes the default Kubernetes scheduler with the 200
-Pod Job.
-
-\subsection{Pod Completions}
 \begin{table}[ht!]
 \centering
     \begin{tabular}{|l|r|c|c|c|c|c|c|c|}
@@ -314,7 +295,26 @@ the remaining Pods, only a few Nodes are used while the rest become idle. This
 second wave of Pods results in a slower throughput compared \textsc{Carico} which ensures
 1-3 Pods are always running on a Node.
 
-\subsection{Resource Utilisation}
+
+\section{Resource Utilisation}
+\label{sec:eval-util}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/pi-util.pdf}
+    \caption{the resource utilisation when scheduling a job with 1000 pods
+    executing \texttt{bpi(2000)}. the top figure gives the resource utilisation
+    when scheduling with the default kubernetes scheduler. The bottom figure
+    gives the resource utilisation when scheduling with spazio.}
+    \label{fig:pi-2000-1000x-pod-util}
+\end{figure}
+
+Figure \ref{fig:pi-2000-1000x-pod-util} shows the resource utilisation during
+the execution of a Job with 1000 Pods. The default Kubernetes scheduler with
+100m CPU requests achieves 100\% CPU utilisation due to the large number of Pods
+running on each Node. The resulting allocation even results in a visible
+increase in the Memory usage.
+
 \begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/ml-util.pdf}
@@ -337,8 +337,8 @@ $\approx$ 10\%; barely above their baseline utilisation.
 On the other hand, \textsc{Carico} is again limited by the Node's CPU metrics, achieving
 a lower overall memory utilisation.
 
-\section{Mixed Workloads}
-\label{sec:eval-mixed}
+\section{Workload Heterogeneity}
+\label{sec:eval-hetero}
 In this experiment, I deployed the two Jobs defined above: a short-lived
 CPU-focused workload and a longer running ML workload. This experiment evaluates
 how \textsc{Carico} handles more than one type of workload.
@@ -459,7 +459,7 @@ end of the Job. In this scenario, \textsc{Carico} achieves a more efficient allo
 resources.
 
 \section{Workload Isolation}
-\label{sec:workload-isolation}
+\label{sec:eval-isolation}
 To evaluate \textsc{Carico}'s QoS, I investigated how its scheduling decisions impact the
 performance of already running Pods. For this experiment, I had a Pod running on
 a worker Node, while another Pod periodically sent HTTP GET requests. This
@@ -494,6 +494,44 @@ towards the tail: the maximum latency was $\approx \times7$ larger. On the other
 hand, when scheduling with \textsc{Carico}, the median latency actually decreased.
 Furthermore, while the tail distribution did increase, the max latency was only
 $\approx \times2$ bigger.
+
+\section{\textsc{Carico} Overhead}
+\label{sec:eval-overhead}
+To measure the overhead incurred from running the \textsc{Carico} pods on the Nodes, I
+compared the completion time of Jobs when running on Nodes with and without the
+\textsc{Carico} deployment. I considered easuring resource utilisation on a Node with
+just the \textsc{Carico} Pod running, but much of the behaviour of the
+\textsc{Carico} Pod occurs during container events. As a result, the measured overhead
+would not represent the entire impact of the \textsc{Carico} Pod. Instead, by measuring
+the overhead over Jobs, we aggregate the impact of \textsc{Carico} across multiple
+container events, providing a more holistic view of its impact.
+
+\begin{table}[ht!]
+\centering
+    \begin{tabular}{|c|c|}
+    \hline
+    \textbf{Number of Pods} & \textbf{\% Overhead with \textsc{Carico}} \\
+    \hline
+        100 & -2.33 $\pm$ 3.29 \\
+        250 & -1.19 $\pm$ 2.44 \\
+        500 & 4.84  $\pm$ 1.25 \\
+        750 & 1.69  $\pm$ 0.42 \\
+        1000 & 2.27  $\pm$ 0.66 \\
+    \hline
+    \end{tabular}
+    \label{tab:overhead}
+    \caption{The overhead incurred when running \textsc{Carico} Pods on Nodes during the
+    executing of Jobs with varying Pod counts. Each Pod executed
+    \texttt{bpi(2000)} and requested 200 milliseconds of CPU time.}
+\end{table}
+
+To measure \textsc{Carico}'s overhead, I used Pod's executing \texttt{bpi(2000)}. Table
+\ref{tab:overhead} presents the relative change in Job Completion time with
+\textsc{Carico} Pods running on the Nodes. We can see that the Job Completion time of
+smaller Jobs are more noisy, therefore, resulting in an observed decrease in Job
+Completion times. However, with larger and more stable Jobs, the overhead from
+\textsc{Carico} is more visible. From these observations we can conclude that \textsc{Carico} has
+$\approx$ 2\% overhead.
 
 \section{Limitation}
 \begin{tcolorbox}[boxsep=0mm,left=2.5mm,right=2.5mm]

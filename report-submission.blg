@@ -66,9 +66,10 @@ Warning--I didn't find a database entry for "Verma-et-al."
 Warning--I didn't find a database entry for "-2016;-Boutin-et-al."
 Warning--I didn't find a database entry for "-2014;-Mao-et-al."
 Warning--I didn't find a database entry for "-2019;-Cortez-et-al."
+Warning--I didn't find a database entry for "thesis"
 You've used 33 entries,
             2616 wiz_defined-function locations,
-            829 strings with 11536 characters,
+            830 strings with 11542 characters,
 and the built_in function-call counts, 11441 in all, are:
 = -- 1180
 > -- 267
@@ -107,4 +108,4 @@ warning$ -- 0
 while$ -- 68
 width$ -- 35
 write$ -- 351
-(There were 50 warnings)
+(There were 51 warnings)
