@@ -1,4 +1,4 @@
-\chapter{Conclusion and Future Work}
+\chapter{Conclusion}
 
 % As you might imagine: summarizes the dissertation, and draws any
 % conclusions. Depending on the length of your work, and how well you
@@ -9,16 +9,64 @@
 %
 
 \section{Summary}
-The goal of this dissertation was to implement a telemetric-only Kubernetes
-scheduler using the theory behind PRONTO as a spring-board. I based the design
-of the scheduler behind PRONTO because of its federated nature and its use of
-contention-based metrics.
+This dissertation set out to explore the application of \textsc{Pronto}'s
+underlying theory to a Kubernetes scheduler. \textsc{Pronto}'s ability to
+efficiently aggregate and process telemetry produced across a datacenter
+addressed the limitations of telemtry-focused schedulers which aimed to reduce
+the reliance on user-provided resource requests. However, the dynamic nature of
+Kubernetes necessitated a novel scorable and reservable signal.
 
+The project successfully achieved its objectives by proposing \textsc{Carico}, a
+federated, asynchronous, and memory-limited scoring algorithm that explicitly
+accounts for communication latency, a key challenge in real-world Kubernetes
+environments. A significant contribution was the novel application of Federated
+Singular Value Decomposition (FSVD) on non-mean-centered data to build a local
+model of recent resource usage, providing a unique interpretation of resource
+utilisation direction and magnitude. This led to the development of a
+continuous, comparable, and reservable capacity signal, expressed in terms of
+Pod units, which allows for robust reservation mechanisms and dynamic adaptation
+to changing workloads.
 
-This dissertation resembles little to what was in the Project Proposal, and I
-feel this tells a lot about this project. A telemetric-only Kubernetes scheduler
-was a novel and inetresting
-presented an interesting and novel
+The comprehensive evaluation of the \textsc{Carico} prototype within a Kubernetes cluster
+yielded several key findings. \textsc{Carico} demonstrated comparable Job
+Completion times to the default kube-scheduler, crucially without requiring
+explicit Pod resource requests. More significantly, it consistently achieved
+substantially lower Pod Completion times and improved workload isolation,
+highlighting its effectiveness as a Quality of Service (QoS) scheduler. The
+evaluation also confirmed CARICO's low overhead, estimated at approximately 2\%,
+making it a practical solution for real-world deployments. These results,
+combined with \textsc{Carico} portable nature, highlight its potential to
+significantly enhance scheduling efficiency and resource utilisation in
+Kubernetes and other orchestration systems by providing a more adaptive and
+performance-aware approach.
 
+% What is the impact of this paper
 
 \section{Future Work}
+The insights gained from \textsc{Carico}'s development and evaluation open several
+promising avenues for future research. One significant direction involves
+exploring \textsc{Carico}'s applicability in other scheduling environments where explicit
+resource requests are either impractical or unavailable. The core design
+principles of \textsc{Carico}, particularly its federated, asynchronous, and
+memory-limited nature, coupled with its ability to derive meaningful capacity
+signals from telemetry, are not intrinsically tied to Kubernetes. This inherent
+simplicity suggests that \textsc{Carico} could be adapted for diverse scheduling
+challenges beyond container orchestration.
+
+Further research could also focus on expanding the range of metrics \textsc{Carico}
+utilizes for its capacity signal generation. Currently, \textsc{Carico} primarily uses
+CPU and memory metrics. Incorporating additional telemetry data, such as network
+I/O, disk I/O, or GPU utilization, could potentially provide a more holistic and
+accurate representation of a Node's workload capacity, leading to even more
+optimized scheduling decisions.
+
+Finally, an important area of exploration is to evaluate \textsc{Carico}'s performance on
+physical machines rather than virtualized environments. As noted in the
+evaluation, hypervisors can mask certain performance degradation effects, making
+CPU utilization alone an unreliable indicator of true contention. Testing \textsc{Carico}
+on bare-metal servers could reveal how its telemetric-only approach performs
+when telemetry data is more directly representative of underlying hardware
+contention and actual performance degradation. This would provide valuable
+insights into \textsc{Carico}'s robustness and effectiveness in diverse infrastructure
+settings.
+
