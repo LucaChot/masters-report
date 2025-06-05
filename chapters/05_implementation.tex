@@ -3,7 +3,7 @@
 \section{System Architecture}
 \label{sec:sys-arch}
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/carico-svg.pdf}
     \caption{The components within the \textsc{Carico} system}
@@ -97,15 +97,43 @@ field:
 \[ \text{Memory Used\%} = 1 - \frac{\text{MemFree} +
 \text{Buffers} + \text{Cached}}{\text{MemTotal}}\]
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.45\textwidth]{images/utilisation-baseline.pdf}
-    \includegraphics[width=0.45\textwidth]{images/utilisation-single.pdf} \\
-    \includegraphics[width=0.45\textwidth]{images/utilisation-smallbatch.pdf}
-    \includegraphics[width=0.45\textwidth]{images/utilisation-bigbatch.pdf}
-    \caption{In this figure we sample CPU and memory utilisation from
-    values of \texttt{/proc/stat}, \texttt{/proc/meminfo} at 10Hz during various
-    Kubernetes workloads.}
+\begin{figure}[ht!] % Added 'b' and 'p' for better placement flexibility
+    \centering % Centers the entire figure
+
+    % --- First Row ---
+    \begin{subfigure}[b]{0.48\textwidth} % [b] for bottom alignment, 0.48\textwidth for width
+        \centering
+        \includegraphics[width=\linewidth]{images/utilisation-baseline.pdf}
+        \caption{No Pods are running} % Specific caption for this graph
+        \label{fig:utilisation-baseline} % Individual label
+    \end{subfigure}%
+    \hfill % Adds horizontal space between subfigures
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/utilisation-single.pdf}
+        \caption{Running a single Pod} % Specific caption for this graph
+        \label{fig:utilisation-single}
+    \end{subfigure}
+    \\[1em] % Forces a new line with 1em vertical space between rows
+
+    % --- Second Row ---
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/utilisation-smallbatch.pdf}
+        \caption{Running 5 Pods} % Specific caption for this graph
+        \label{fig:utilisation-smallbatch}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/utilisation-bigbatch.pdf}
+        \caption{Running 10 Pods} % Specific caption for this graph
+        \label{fig:utilisation-bigbatch}
+    \end{subfigure}
+
+    \caption{Measurements of [0,1]-normalised CPU and memory utilisation (via
+    \texttt{/proc/stat} and \texttt{/proc/meminfo}) during Jobs with Pods
+    executing \texttt{bpi(2000).}}
     \label{fig:utilisation-eval}
 \end{figure}
 
@@ -120,14 +148,25 @@ to the default \verb|kube-scheduler|. When Pods requested
 Pods running on them at once. In contrast, \textsc{Carico}, using only utilisation
 telemetry, would allocate at most 5 Pods concurrently per Node. Although both
 approaches achieved 100\% CPU utilisation, \verb|kube-scheduler| achieved a
-short Job Completion time while having a long-tailed distribution of individual
-Pod Completion times.
+short Job Completion time (JCT) while having a long-tailed distribution of
+individual Pod Completion times.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.45\textwidth]{images/podcount-util-pressure.pdf}
-    \includegraphics[width=0.45\textwidth]{images/ml-podcount-util-pressure.pdf}
-    \caption{Collected resource metrics during various Kubernetes workload.}
+\begin{figure}[ht!] % Added 'b' and 'p' for better placement flexibility
+    \centering % Centers the entire figure
+    % --- First Row ---
+    \begin{subfigure}[b]{0.48\textwidth} % [b] for bottom alignment, 0.48\textwidth for width
+        \centering
+        \includegraphics[width=\textwidth]{images/podcount-util-pressure.pdf}
+        \caption{Pods executing \texttt{bpi(2000)}} % Specific caption for this graph
+    \end{subfigure}%
+    \hfill % Adds horizontal space between subfigures
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/ml-podcount-util-pressure.pdf}
+        \caption{Pods executing a small ML workload} % Specific caption for this graph
+    \end{subfigure}
+    \caption{Mean Pod contribution to Job Completion Time (JCT) and collected
+    [0,1]-normalised telemetry as the number of Pods in a Job increases.}
     \label{fig:podcount-util-pressure}
 \end{figure}
 
@@ -141,7 +180,7 @@ high CPU utilisation does not correlate with performance degradation, and thus,
 is not an accurate measure of capacity.
 
 \subsubsection{Combining CPU Utilisation and CPU Pressure}
-[0,1]-normalised \verb|/proc/pressure| total metrics,
+[0,1]-normalised \verb|/proc/pressure/cpu| total metrics,
 \[ \text{CPU Pressure} = \Delta \text{total} \times \text{polling frequency} \]
 aren't sufficient as they do not initially exhibit a linear relation with Pod
 count (Figure \ref{fig:podcount-util-pressure}). This would lead to
@@ -150,7 +189,7 @@ Pod-Capacity. However, by combining CPU utilisation and CPU pressure,
 \[ CPU = \frac{\text{CPU Utilisation} + \text{CPU Pressure}}{2} \]
 the resulting metric exhibits a pseudo-linear relation with Pod count and
 doesn't saturate to quickly (Figure \ref{fig:podcount-util-pressure}): it ouputs
-1 when \verb|/proc/pressure| indicates persistant CPU demand (at least one
+1 when \verb|/proc/pressure/cpu| indicates persistant CPU demand (at least one
 thread always waiting)
 
 \subsection{Filtering Metrics}
@@ -168,13 +207,43 @@ $\approx$200 milliseconds, Dynamic EMA can be used to
 suppress container-event caused spikes (typically $\approx$ 200ms) using a small
 $\alpha_{\text{slow}}$, while sustained changes (spikes $>$ 300ms) causes it to
 switch to a larger $\alpha_{\text{fast}}$ for rapid convergence.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-baseline.pdf}
-    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-single.pdf} \\
-    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-smallbatch.pdf}
-    \includegraphics[width=0.45\textwidth]{images/filter-utilisation-bigbatch.pdf}
-    \caption{This figure shows the smoothed metrics under different workloads.}
+
+\begin{figure}[ht!] % Added 'b' and 'p' for better placement flexibility
+    \centering % Centers the entire figure
+
+    % --- First Row ---
+    \begin{subfigure}[b]{0.48\textwidth} % [b] for bottom alignment, 0.48\textwidth for width
+        \centering
+        \includegraphics[width=\linewidth]{images/filter-utilisation-baseline.pdf}
+        \caption{No Pods are running} % Specific caption for this graph
+        \label{fig:filter-utilisation-baseline} % Individual label
+    \end{subfigure}%
+    \hfill % Adds horizontal space between subfigures
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/filter-utilisation-single.pdf}
+        \caption{Running a single Pod} % Specific caption for this graph
+        \label{fig:filter-utilisation-single}
+    \end{subfigure}
+    \\[1em] % Forces a new line with 1em vertical space between rows
+
+    % --- Second Row ---
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/filter-utilisation-smallbatch.pdf}
+        \caption{Running 5 Pods} % Specific caption for this graph
+        \label{fig:filter-utilisation-smallbatch}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/filter-utilisation-bigbatch.pdf}
+        \caption{Running 10 Pods} % Specific caption for this graph
+        \label{fig:filter-utilisation-bigbatch}
+    \end{subfigure}
+
+    \caption{Measured [0,1]-normalised telemetry with Dynamic EMA smoothing
+    during Jobs with Pods executing \texttt{bpi(2000).}}
     \label{fig:filtered-metrics-eval}
 \end{figure}
 
@@ -198,12 +267,12 @@ collected telemetry.
 To verify Capacity signal's implementation, I test a \textsc{Carico} Pods under
 the scenarios described in Section \ref{sec:signal-example-scenario}.
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/signal-with-cpu.pdf}
-    \caption{The calculated capacity signal of a Node running \texttt{ng-stress
-    --cpu=8 --cpu-load=25}. While running this workload, $1000$ Pods running
-    \texttt{bpi(2000)} were scheduled across surrounding Nodes.}
+    \caption{The Capacity signal of a Node running \texttt{ng-stress --cpu=8
+    --cpu-load=25} when scheduling a Job with 1000 Pods running
+    \texttt{bpi(2000)} on the remaining Nodes.}
     \label{fig:signal-evaluation-cpu}
 \end{figure}
 %
@@ -224,12 +293,12 @@ subspace, combinings its unchanged resource usage with the new increased
 expected workload (reflecting in $\sigma_1 u_1$) results in a smaller $k$ (fewer
 units of this workload can be added), and thus a lower Capacity signal.
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/signal-with-memory.pdf}
-    \caption{The calculated capacity signal of a Node running \texttt{ng-stress
-    --vm=4 --vm-bytes=4G}. While running this workload, $1000$ Pods running
-    \texttt{bpi(2000)} was scheduled across surrounding Nodes.}
+    \caption{The Capacity signal of a Node running \texttt{ng-stress
+    --vm=4 --vm-bytes=4G} when scheduling a Job with 1000 Pods
+    running \texttt{bpi(2000)} on the remaining Nodes.}
     \label{fig:signal-evaluation-mem}
 \end{figure}
 
@@ -265,26 +334,29 @@ the requirements for an event listener are:
     \item Provide warning for potential container-caused churn
 \end{itemize}
 
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=\textwidth]{images/event-comparison-start.pdf}
-    \caption{When different event listeners detected the creation of a Pod.}
-    \label{fig:event-evaluation-start}
-\end{figure}
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=\textwidth]{images/event-comparison-end.pdf}
-    \caption{When different event listeners detected the completion of a Pod.}
-    \label{fig:event-evaluation-end}
+\begin{figure}[ht!] % Added 'b' and 'p' for better placement flexibility
+    \centering % Centers the entire figure
+    % --- First Row ---
+    \begin{subfigure}[b]{\textwidth} % [b] for bottom alignment, 0.48\textwidth for width
+        \centering
+        \includegraphics[width=\textwidth]{images/event-comparison-start.pdf}
+        \caption{Detecting the creation of a Pod} % Specific caption for this graph
+    \end{subfigure}\\
+    \begin{subfigure}[b]{\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/event-comparison-end.pdf}
+        \caption{Detecting the completion of a Pod} % Specific caption for this graph
+    \end{subfigure}
+    \caption{Event listeners when detecting different events.}
+    \label{fig:event-evaluation}
 \end{figure}
 
 I investigated two event detection approaches: watching the Kubernetes API vs
-ContainerD events. Figures \ref{fig:event-evaluation-start} and
-\ref{fig:event-evaluation-end} show that communication latency from the
-Kubernetes API causes its listener to miss container runtime resource spikes,
-while initial container events precede the spikes. Though more complex, handling
-ContainerD events directly provides sufficient warning for container churn.
+ContainerD events. Figure \ref{fig:event-evaluation} shows that communication
+latency from the Kubernetes API causes its listener to miss container runtime
+resource spikes, while initial container events precede the spikes. Though more
+complex, handling ContainerD events directly provides sufficient warning for
+container churn.
 
 \subsubsection{Estimating Pod-Cost}
 \label{sec:estimating-cost}
@@ -319,8 +391,8 @@ Per-Pod-Cost, leading to an inflated advertised Pod-Capacity.
     \centering
     % \includegraphics[width=0.45\textwidth]{images/filter-signal.png}
     \includegraphics[width=\textwidth]{images/filter-comparison.pdf}
-    \caption{The estimates of the Kalman filters when Node experiences
-    variable-sized bursts of \texttt{bpi(2000)} Pods.}
+    \caption{The estimates of the Kalman filters when a Node experiences bursts
+    of \texttt{bpi(2000)} Job with differing Pod counts.}
     \label{fig:filter-evaluation}
 \end{figure}
 
@@ -347,7 +419,7 @@ minimal synchonisation, it demands multiple dedicated Pods, and Kubernetes'
 inherent communication latency could significantly delay global model updates
 after workload changes.
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/spazio-agg.pdf}
     \caption{The components within the Aggregator Server.}
@@ -386,7 +458,7 @@ latest Pod-Capacity scores. Furthermore, it keeps track of all Pod reservations.
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/scheduling-framework-extensions.png}
-    \caption{The available scheduling framework extension points
+    \caption{The Kubernetes scheduling framework extension points
     \cite{scheduling-framework}.}
     \label{fig:kube-sched-framework}
 \end{figure}
