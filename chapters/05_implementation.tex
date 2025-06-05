@@ -157,7 +157,7 @@ thread always waiting)
 While \textsc{Carico} does not perform peak detection, its Capacity signal is
 still susceptible to short-lived spikes. As previously noted,  Pod creation and
 deletion incur visible resource usage spikes. These spikes introduce noise into
-both the Node's local model and its Capacity signal. As a noisy signal
+both the Node's subspace and its Capacity signal. As a noisy signal
 would result in inaccurate baseline Capacity and Per-Pod-Cost estimation, a
 low-overhead signal filter was required.
 
@@ -338,41 +338,50 @@ exhibiting the oscillations that plagued the 2D Kalman filter. Therefore, this
 final approach was used in the \textsc{Carico} Pod implementation.
 
 \section{Aggregation Server}
-\textsc{Pronto} aggregation resembles the distributed agglomerative summary
-model (DASM) \cite{}. Local models are aggregated in a "bottom-up" approach
-following a tree-structure depicted in Figure \ref{pronto-agg}. While this
-approach reportedly requires minimal synchonisation, it demands
-multiple dedicated Pods, and Kubernetes' inherent communication latency could
-significantly delay global model updates after workload changes.
-
-Therefore, I opted for a ``flat" on-the-fly aggregation approach: when the
-Aggregation Server receives an aggregation request with a Node's local model,
-instead of aggregating the local model and returning the new global model, the
-server first enqueues the local model to be aggregated and returns its current
-view of the global model. This implementation trades consistency for latency.
+The purpose of the Aggregation Server is to perform Subspace-Merge on incoming
+local subspaces and return the global aggregated subspace. \textsc{Pronto}'s
+approach resembles the distributed agglomerative summary model (DASM) \cite{}.
+Subspaces are aggregated in a "bottom-up" approach following a tree-structure
+depicted in Figure \ref{pronto-agg}. While this approach reportedly requires
+minimal synchonisation, it demands multiple dedicated Pods, and Kubernetes'
+inherent communication latency could significantly delay global model updates
+after workload changes.
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/spazio-agg.pdf}
     \caption{The components within the Aggregator Server.}
-    \label{spazio-agg-components}
+    \label{fig:spazio-agg-components}
 \end{figure}
 
-The Aggregation Server executes a thread which waits on a queue of local models
-to aggregate. When the queue is non-empty, the thread pops the local model and
-performs a Subspace Merge operation (as defined in \ref{sec:local-merge}). To
-balance the influence of each local model, weights $\gamma_{\mathbf{A}} =
-\text{\# of Nodes} - 1$ and $\gamma_{\mathbf{B}} = 1$ are used in the
-Subspace-Merge (as per Section \ref{sec:local-merge}).
-Aggregation clients perform a gRPC call to the address specified by the
-Aggregation Service. This gRPC function is implemented by the server and takes
-the local model of a Node as its argument. The function first enqueues the local
-model to be merged and returns the latest view of the global model. Clients
-then aggregate their own local model with the received global model. Decoupling
-model aggregation from the gRPC call's critical path reduces server load,
-improving its capacity to handle more clients.
+Instead \textsc{Carico} opts for a ``flat" on-the-fly aggregation approach
+(shown in Figure \ref{fig:spazio-agg-components}).
+\textsc{Carico} Pods request the latest aggregate subspace with a gRPC (go
+Remote Procedure Call) and their local subspace. The Aggregation Server
+corresponding gRPC function enqueues the input subspace to be aggregated and
+returns its latest view of the global model, which the \textsc{Carico} Pods then
+aggregate locally with their subspace. Decoupling model aggregation from the
+gRPC call's critical path reduces server load. Furthermore, as the Aggregate
+Server does not wait for all the pending subspaces to have been aggregated, it
+trades consistency for latency.
+
+The Aggregation Server also executes a long-running thread which waits on a
+queue of subspaces to aggregate. When the queue is non-empty, the thread pops
+a subspace at a time and performs a Subspace Merge operation (as defined in
+\ref{sec:local-merge}) with its latest aggregated subspace. To balance the
+influence of each subspace, weights $\gamma_{\mathbf{A}} = \text{\# of Nodes}
+- 1$ and $\gamma_{\mathbf{B}} = 1$ are used in the Subspace-Merge (as per
+Section \ref{sec:local-merge}).
+
+While not implemented in this prototype, \textsc{Carico} could scale to larger
+clusters with  multiple Aggregation Servers connected to a load balancer. These
+aggregation Servers could then periodically merge their aggregate subspaces to
+ensure consistency across Servers.
 
 \section{Scheduler Pod}
+The purpose of this component is to allocate Pods to Nodes, based on the Nodes'
+latest Pod-Capacity scores. Furthermore, it keeps track of all Pod reservations.
+
 \subsection{Kubernetes Scheduler Plugin}
 \begin{figure}[H]
     \centering
@@ -389,16 +398,17 @@ interface: a set of functions the scheduler plugin has to implement.
 
 Developing a \textsc{Carico}-based scheduler plugin, rather than a standalone
 scheduelr, simplified implemention and offered many performance benefits. First,
-\textsc{Carico}'s scheduling operations (Section \ref{sec:spazio-cost-capacity}
-map well to the framework's extension points. Second, the framework provides
+\textsc{Carico}'s \textbf{filter}, \textbf{score}, and \textbf{reserve}
+operations (given in Section \ref{sec:spazio-cost-capacity}) have one-to-one
+mapping to the framework's extension points. Second, the framework provides
 access to efficient, pre-existing data structures and algorithms. Finally,
 plugins allow customisation through selective enabling/disabling of default
 plugins and ordering of custom ones. This means that the \textsc{Carico} plugin
 could be used in tandem with other plugins to improve scheduling decisions.
 
-The \textsc{Carico} scheduler tracks Pod reservations using a \verb|map| (Pod ID
-to Node ID) and a Kubernetes API Pod Event Listener. During the Reserve phase, the scheduler
-increments the target Node's reserve count and records Pod-Node assignment. When
-the API listener detects a Pod transitioning from the 'Pending'
-status, if the Pod is in its reservation \verb|map|, the scheduler decrements
-the corresponding Node's reserved count.
+To track Pod-Capacity reservations, the \textsc{Carico} scheduler uses a
+\verb|map| (Pod ID to Node ID) and a Kubernetes API Pod Event Listener. During
+the Reserve phase, the scheduler increments the target Node's reserve count and
+records Pod-Node assignment. When the API listener detects a Pod transitioning
+from the 'Pending' status, if the Pod is in its reservation \verb|map|, the
+scheduler decrements the corresponding Node's reserved count.
