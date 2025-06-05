@@ -10,21 +10,18 @@
     \label{fig:spazio-system}
 \end{figure}
 
-The \textsc{Carico} system consists of three core components (shown in figure
+The \textsc{Carico} system consists of three core components (Figure
 \ref{fig:spazio-system}):
 \begin{itemize}
-    \item \textsc{Carico} DaemonSet: each Node in the cluster will contain a \textsc{Carico} Pod.
-        This Pod periodically collects telemetry from the Node and generates its
-        local model and a capacity signal, which it sends to the Scheduling
-        Service. When the \textsc{Carico} Pod deems its local model outdated, it requests
-        the latest aggregated global model from the Aggregation service.
-    \item Aggregation Server: This deployment provides the Aggregation service.
-        The Aggregation Server Pod receives local models from Nodes
-        and returns the latest aggregated global model.
-    \item Scheduler: In \textsc{Carico}, the scheduler is a \textbf{Scheduler Plugin},
-        implementing custom Filter, Score and Reserve functions. It also acts as
-        the server of the Scheduling service, receiving the latest capacity
-        scores of each Node to inform its scheduling decisions.
+    \item \textsc{Carico} DaemonSet: This Pod collectes telemetry from a
+        Node and generates its subspace and Pod-Capacity  signal. This signa is
+        periodically sent to the Scheduling Service. When the \textsc{Carico}
+        Pod deems its subspace outdated, it requests the latest aggregated
+        subspace from the Aggregation service.
+    \item Aggregation Server: This Pod performs Subspace-Merge on incoming
+        subspaces, and returns the latest aggregated subspace.
+    \item Scheduler: The scheduler filters and scores Nodes based on their
+        latest Pod-Capacity.
 \end{itemize}
 
 \section{\textsc{Carico} Pod}
@@ -34,11 +31,9 @@ The \textsc{Carico} system consists of three core components (shown in figure
     \caption{Core components within the \textsc{Carico} Pod}
     \label{spazio-pod-components}
 \end{figure}
-As mentioned in section \ref{sec:sys-arch}, the \textsc{Carico} Pods are defined within a
-DaemonSet - a DaemonSet ensures that all Nodes run a copy of a Pod. The \textsc{Carico}
-Pods collect telemetry from the Node and generate its local model and capacity
-signal. The following sections detail the metrics considered and explain the
-corresponding implementation decisions.
+The goal of \textsc{Carico} Pods is to accurately generate its Node's
+Pod-Capacity. This necessitates high quality telemetry for subspace creation and
+effective signal processing techniques to estimate Baseline and Per-Pod-Cost.
 
 \subsection{Metric Collection}
 To build its local model, the \textsc{Carico} Pod must first collect telemetry.
