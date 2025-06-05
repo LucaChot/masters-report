@@ -14,7 +14,7 @@ The \textsc{Carico} system consists of three core components (Figure
 \ref{fig:spazio-system}):
 \begin{itemize}
     \item \textsc{Carico} DaemonSet: This Pod collectes telemetry from a
-        Node and generates its subspace and Pod-Capacity  signal. This signa is
+        Node and generates its subspace and Pod-Capacity  signal. This signal is
         periodically sent to the Scheduling Service. When the \textsc{Carico}
         Pod deems its subspace outdated, it requests the latest aggregated
         subspace from the Aggregation service.
@@ -34,11 +34,18 @@ The \textsc{Carico} system consists of three core components (Figure
 The goal of \textsc{Carico} Pods is to accurately generate its Node's
 Pod-Capacity. This necessitates high quality telemetry for subspace creation and
 effective signal processing techniques to estimate Baseline and Per-Pod-Cost.
+Kubernetes dynamically changing workloads also required \textsc{Carico} Pods to
+frequently update its subspace and Pod-Capacity signal. However, updating too
+frequently could result in large overheads and reduce the available resources.
+Investigations using the prototype showed that an update frequency of 1Hz
+achieved the best results.
 
 \subsection{Metric Collection}
-To build its local model, the \textsc{Carico} Pod must first collect telemetry.
-Kubernetes offers numerous ways to obtain telemetry data. I explored two primary
-sources of telemetry data:
+To achieve an update frequency of 1Hz, \textsc{Carico} Pods must collect batches
+of telemetry data every second. To construct a batch of telemetry,
+\textsc{Carico} Pods must periodically poll resource metrics and [0,1]-normalise
+them. This polling frequency is also limited by the overhead it incurrs. I
+explored two primary sources of telemetry data:
 \begin{itemize}
     \item Metrics Server: a cluster add-on that acts as a centralised source of
         container reosurce metrics.
@@ -46,27 +53,27 @@ sources of telemetry data:
         information about running processes and system's hardware.
 \end{itemize}
 
-With Metrics Server, a scraper is used to periodically (default every 15
-seconds) collects resource metrics from Kubelets and exposes them from its
+Metrics Server uses a scraper to periodically (default every 15 seconds) collect
+resource metrics from Kubelets and exposes them from its
 \verb|metrics.k8s.io/v1| APIService. While simple to use, it offers limited
 metrics (CPU and RAM utilisation only) and introduces additional latency.
-Moreover, its default 15 seconds scraping interval is too infrequent,
-potentially missing short-lived Pods entirely.
+Moreover, its default scraping interval is too infrequent, potentially missing
+short-lived Pods entirely.
 
 \verb|/proc/|, conversely, offers low latency access to an up-to-date view
 of the current state of the system. Furthermore, \verb|/proc/| contains various
-files and subdirectories, each providing specific information. Examples include,
-\verb|/proc/stat| which contains the amount of time CPU cores spend in different
-states, \verb|/proc/meminfo| provides statistics about memory usage,
-\verb|/proc/diskstats| presents the raw, low-level I/O statistics of all block
-devices. Finally, both these sources are not generated periodically, but rather
-on-the-fly. This guarantees that the information you see is as current as the
-system's internal state.
+files and subdirectories, each providing specific information about different
+types of resources. Furthermore, these sources are not generated periodically,
+but rather on-the-fly. This guarantees that the information you see is as
+current as the system's internal state and allows for polling of resource
+metrics at higher frequencies. \textsc{Carico} Pods use a polling
+frequency of 10Hz, providing enough samples to accurately construct the subspace
+(10 samples) without incurring too large of an overhead.
 
-Given these advantages, I selected \verb|/proc/| as the source of telemetry
-data. The subsequent sections detail the metrics I considered and their
+The next challenge was to select resource metrics, with which to build the
+subspace, that could be [0,1]-normalised to indicate full or no capacity. The
+subsequent subsections detail the resource metrics I considered and the
 rationale behind their use.
-
 % I decided to collect CPU and memory utilisation as my telemetry data, as these
 % metrics are easily accessible and are used in a variety of industry-standard
 % schedulers
@@ -76,19 +83,17 @@ rationale behind their use.
 % representative and out-of-date model of "current" resource usage.
 
 \subsubsection{Utilisation Metrics}
-\texttt{/proc/} can generate standard utilisation metrics (e.g., CPU and memory
-percentage usage). These metrics are widely used in
-industry~\cite{hadoop2016apache,sahasrabudhe_improved_2015}.
+Standard utilisation metrics (e.g., CPU and memory percentage usage) are widely
+used in industry~\cite{hadoop2016apache,sahasrabudhe_improved_2015}.
 
-To collect CPU utilisation, I used the \verb|/proc/stat| file. This file reports
-the cumulative count of "jiffies" (typically hundredths of a second) each CPU
-spent in a specific mode \cite{proc_stat5}. I can then calculate CPU utilisation
-using:
+\texttt|/proc/stat| file reports the cumulative count of "jiffies" (typically
+hundredths of a second) each CPU spent in a specific mode \cite{proc_stat5}. The
+[0,1]-normalised CPU utilisation can then be calculated using:
 \[ \text{CPU Usage\%} = 1 - \frac{\Delta\text{idle} +
 \Delta\text{iowait}}{\Delta\text{across all fields}} \]
-\verb|/proc/meminfo| can also be used to collect memory utilisations. This file
-shows a snapshot of the memory usage in kilobytes. The percentage of memory
-used can then be calculated from the given field:
+In addition, \verb|/proc/meminfo| shows a snapshot of the memory usage in
+kilobytes. The [0,1]-normalised memory usage can then be calculated from the given
+field:
 \[ \text{Memory Used\%} = 1 - \frac{\text{MemFree} +
 \text{Buffers} + \text{Cached}}{\text{MemTotal}}\]
 
@@ -104,24 +109,19 @@ used can then be calculated from the given field:
     \label{fig:utilisation-eval}
 \end{figure}
 
-To assess their suitability for \textsc{Carico}, I measured utilisation metrics
-under various workloads. Figure \ref{fig:utilisation-eval} presents the metrics
-behaviour when running different Job sizes of \verb|pi-2000| Pods. For a
-CPU-intense workload (calculating $\pi$ to 2000 digits), the CPU utilisation
-correctly increased while memory utilisation remained stable.
+Figure \ref{fig:utilisation-eval} demonstrates how the [0,1]-normalised
+metrics can quickly respond to the resource usage workloads of different sizes.
 
 \subsubsection{Issues of using CPU Utilisation}
 \label{sec:issue-with-util}
 Early prototypes using only utilisation metrics showed poor throughput compared
-to the default \verb|kube-scheduler|, highlighting a problem with relying solely
-on CPU utilisation. When deploying 1000 Pods, each requesting 100 milliseconds
-of CPU time, across 19 Nodes, the \verb|kube-scheduler| would immediately
-allocate all Pods evenly across the Nodes. This would result in $\approx$ 45
-Pods running on each Node. In contrast, \textsc{Carico} (using only utilisation
-telemetry) allocated at most 5 Pods concurrently per Node. In both situations,
-CPU utilisation was 100\%, however, the default \verb|kube-scheduler| managed to
-achieve a high throughput, even with a long-tailed distribution of individual
-Pod completion times.
+to the default \verb|kube-scheduler|. When Pods requested
+100 milliCPU the \verb|kube-scheduler|, Nodes would have $\approx$ 45
+Pods running on them at once. In contrast, \textsc{Carico}, using only utilisation
+telemetry, would allocate at most 5 Pods concurrently per Node. Although both
+approaches achieved 100\% CPU utilisation, \verb|kube-scheduler| achieved a
+short Job Completion time while having a long-tailed distribution of individual
+Pod Completion times.
 
 \begin{figure}[H]
     \centering
@@ -131,47 +131,43 @@ Pod completion times.
     \label{fig:podcount-util-pressure}
 \end{figure}
 
-As a result, I decided to further investigate this phenomenon. Figure
-\ref{fig:podcount-util-pressure} shows how a Job's completion time changes as you
-increase its completion and parallelism count when running different Pods:
-cpu-intense Pi-2000 and a small ML workload (training and inference). I also
-decided to include measurements from \verb|/proc/pressure|. This investigation
-revealed that the relationship between the number of Pods running on
-a Node at a time and their completion time showed a close-to linear
-relationship. I hypothesise that this is because the cluster runs on virtual
-machines (VMs). Hypervisors, while abstracting hardware, can mask effects like
-cache contention and CPU thrashing. This means that high  CPU utilisation may
-not truly signify performance degradation. Thus, CPU utilisation alone is not a
-definitive capacity measure, explaining the prototype's initial throughput
-limitations.
+Further investigations, shown in Figure \ref{fig:podcount-util-pressure},
+revealed that even after a Node achieves 100\% CPU utilisation, the contribution
+of each Pod to the Job Completion time decreases: running more Pods on a Node
+resulted in higher throughput. As the cluster runs on virtual machines (VMs), I
+hypothesise that the hypervisor inadvertantly masks contention effects like
+cache and CPU thrashing when providing a hardware abstraction. Consequently,
+high CPU utilisation does not correlate with performance degradation, and thus,
+is not an accurate measure of capacity.
 
 \subsubsection{Combining CPU Utilisation and CPU Pressure}
-Raw \verb|/proc/pressure| metrics were also insufficient as these metrics
-barely increased until the Pod count exceeded core count. This would lead to
-unreasonably low initial Per-Pod-Cost estimations and an inflated advertised Node
-Pod-Capacity. I therefore combined both CPU utilisation and CPU pressure
-into a single metric:
+[0,1]-normalised \verb|/proc/pressure| total metrics,
+\[ \text{CPU Pressure} = \Delta \text{total} \times \text{polling frequency} \]
+aren't sufficient as they do not initially exhibit a linear relation with Pod
+count (Figure \ref{fig:podcount-util-pressure}). This would lead to
+unreasonably low intial Per-Pod-Cost estimations and an inflated advertised Node
+Pod-Capacity. However, by combining CPU utilisation and CPU pressure,
 \[ CPU = \frac{\text{CPU Utilisation} + \text{CPU Pressure}}{2} \]
-
-This ensures the metric increases with Pod count but doesn't saturate to
-quickly. This combined CPU metric only reaches its maximum when \verb|/proc/pressure|
-indicates persistant CPU demand (at least one thread always waiting). Figure
-\ref{fig:podcount-util-pressure} illustrates this metric in action.
+the resulting metric exhibits a pseudo-linear relation with Pod count and
+doesn't saturate to quickly (Figure \ref{fig:podcount-util-pressure}): it ouputs
+1 when \verb|/proc/pressure| indicates persistant CPU demand (at least one
+thread always waiting)
 
 \subsection{Filtering Metrics}
-\textsc{Carico} does not perform peak detection, but its signal is still
-susceptible to short-lived spikes. As previously noted,  Pod creation and
-deletion incur visible resource usage spikes. These spikes introduce noise
-into both the Node's local model, as well as, its Capacity signal. A noisy
-signal complicates baseline Capacity and Per-Pod-Cost estimation. As such, I
-needed to de-noise the original metrics.
+While \textsc{Carico} does not perform peak detection, its Capacity signal is
+still susceptible to short-lived spikes. As previously noted,  Pod creation and
+deletion incur visible resource usage spikes. These spikes introduce noise into
+both the Node's local model and its Capacity signal. As a noisy signal
+would result in inaccurate baseline Capacity and Per-Pod-Cost estimation, a
+low-overhead signal filter was required.
 
-Investigation into the recorded telemetry showed that the spikes caused from
-container events would last $\approx$200 milliseconds. Sampling at
-10Hz, Dynamic EMA was used to suppress container-event caused spikes (typically
-$\approx$ 200ms) while allowing rapid convergence for sustained changes (spikes
-$>$ 300ms).
-
+Dynamic Exponential Moving Average (EMA) automatically adjusts its smoothing
+factor $\alpha$, and thus its responsiveness, based on predefined conditions.
+As first-hand investigations showed that container events resource spikes last
+$\approx$200 milliseconds, Dynamic EMA can be used to
+suppress container-event caused spikes (typically $\approx$ 200ms) using a small
+$\alpha_{\text{slow}}$, while sustained changes (spikes $>$ 300ms) causes it to
+switch to a larger $\alpha_{\text{fast}}$ for rapid convergence.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.45\textwidth]{images/filter-utilisation-baseline.pdf}
@@ -182,34 +178,27 @@ $>$ 300ms).
     \label{fig:filtered-metrics-eval}
 \end{figure}
 
-Comparing Figure \ref{fig:utilisation-eval} with \ref{fig:filtered-metrics-eval}
-demonstrates the dampening of the Dynamic EMA and its quick responsive to
-prolonged changes in workloads. More sophisticated filters were avoided due to
-their higher computational cost, which would rob resources from scheduled Pods.
-Filtering the signal directly, rather than the telemetry, was considered but
-rejected as it would still allow container-event resource spikes to pollute the
-local model.
+Comparing Figure \ref{fig:utilisation-eval} and Figure
+\ref{fig:filtered-metrics-eval} reveals the impact of Dynamic EMA on the
+collected telemetry.
 
+% Filtering the signal directly, rather than the telemetry, was considered but
+% rejected as it would still allow container-event resource spikes to pollute the
+% local model.
+%
 \subsection{Signal Generation}
-The \textsc{Carico} Pod calculates its Capacity signal at 1Hz. This matches the local
-model update frequency, ensuring that the Capacity signal tracks with the local
-model. While a higher frequency would provide the central scheduler a more
-current view of a Node's resource status, it would also increase resource
-overhead. This overhead would reduce the available resources to other
-Pods and could also lower the baseline Capacity signal, potentially reducing
-the capacity a Node advertises.
+% The \textsc{Carico} Pod calculates its Capacity signal at 1Hz. This matches the local
+% model update frequency, ensuring that the Capacity signal tracks with the local
+% model. While a higher frequency would provide the central scheduler a more
+% current view of a Node's resource status, it would also increase resource
+% overhead. This overhead would reduce the available resources to other
+% Pods and could also lower the baseline Capacity signal, potentially reducing
+% the capacity a Node advertises.
+%
+To verify Capacity signal's implementation, I test a \textsc{Carico} Pods under
+the scenarios described in Section \ref{sec:signal-example-scenario}.
 
-To verify Capacity signal's implementation, I tested it under the scenarios
-described in Section \ref{sec:signal-example-scenario}. For the conflicting
-workload, I had the measured Node execute a light CPU-focused workload
-(\texttt{ng-stress --cpu=8 --cpu-load=25}) with the surrounding Nodes executing
-a CPU-intense workload (\texttt{bpi(2000)}). For the complementary workload, the
-measured Node executed a light Memory-focused workload (\texttt{ng-stress --vm=4
---vm-bytes=4G}) with the surrounding Nodes also executing the same CPU-intense
-workload as in the conflicting scenario. The measured signals are shown in
-figures \ref{fig:signal-evaluation-cpu} and \ref{fig:signal-evaluation-mem}
-
-\begin{figure}[H]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/signal-with-cpu.pdf}
     \caption{The calculated capacity signal of a Node running \texttt{ng-stress
@@ -217,7 +206,25 @@ figures \ref{fig:signal-evaluation-cpu} and \ref{fig:signal-evaluation-mem}
     \texttt{bpi(2000)} were scheduled across surrounding Nodes.}
     \label{fig:signal-evaluation-cpu}
 \end{figure}
-\begin{figure}[H]
+%
+% Figures \ref{fig:signal-evaluation-cpu} and \ref{fig:signal-evaluation-mem}
+% demonstrates how a Node's capacity signal reacts to changes in surrounding
+% workloads when experiencing different resource usage. In Figure
+% \ref{fig:signal-evaluation-cpu}, the measured Node is running a light
+% CPU-focused workload.
+
+Figure \ref{fig:signal-evaluation-cpu} shows the Capacity signal of a Node when
+running a light CPU-focused workload (\texttt{ng-stress --cpu=8 --cpu-load=25}),
+while the remaining Nodes in the cluster execute a CPU-intense workload
+(\texttt{bpi(2000)}). The measured Node's capacity signal drops once the
+CPU-intense workload is scheduled on its peers. This is expected as the
+subspaces of surrounding Nodes, and thus the aggregated subspace, will reflect a
+more costly CPU-focused workload (larger $\sigma_1$).  After aggregating its
+subspace, combinings its unchanged resource usage with the new increased
+expected workload (reflecting in $\sigma_1 u_1$) results in a smaller $k$ (fewer
+units of this workload can be added), and thus a lower Capacity signal.
+
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/signal-with-memory.pdf}
     \caption{The calculated capacity signal of a Node running \texttt{ng-stress
@@ -226,80 +233,62 @@ figures \ref{fig:signal-evaluation-cpu} and \ref{fig:signal-evaluation-mem}
     \label{fig:signal-evaluation-mem}
 \end{figure}
 
-Figures \ref{fig:signal-evaluation-cpu} and \ref{fig:signal-evaluation-mem}
-demonstrates how a Node's capacity signal reacts to changes in surrounding
-workloads when experiencing different resource usage. In Figure
-\ref{fig:signal-evaluation-cpu}, the measured Node is running a light CPU-focused
-workload. Once the CPU-intense workload is scheduled on surrounding Nodes, the
-measured Node's capacity signal drops. This is expected as the local models of
-surrounding Nodes will reflect a more costly CPU-focused workload. As a result,
-when the measured Node aggregates its local model, its new model will reflect
-this higher CPU usage with a larger $\sigma_1$ value. Since both the Node's
-current resource usageand the learned expected workload (reflected in $u_1$) are
-CPU-focused, the increased magnitude of the expected workload (larger
-$\sigma_1$) results in a smaller $k$ (fewer units of this workload can be
-added), and thus a lower Capacity signal.
+Figure \ref{fig:signal-evaluation-mem} demonstrates the Capacity signal of a
+Node when running a light Memory-focused workload (\texttt{ng-stress --vm=4
+--vm-bytes=4G}) with the remaining Nodes in the cluster execute the same
+CPU-intense workload as in the earlier scenario. Like before, the global
+aggregated subspace reflects a heavy CPU-focused workload. However, when the
+measured Node combines this new expected workload with its current
+memory-focused resource usage, a larger $k$ is required to reach a resource
+limit.
 
-In Figure \ref{fig:signal-evaluation-mem}, the measured Node runs a light
-memory-focused workload. When the CPU-intense workload is scheduled on surrounding
-Nodes, the measured Node's capacity signal increases. This aligns with the
-hypothesis from Section \ref{sec:capacity-signal}. Like in the previous scenario, the global model
-reflects a heavy CPU-focused workload, and thus, so will the aggregated local
-model of the measured Node. However, with the Node's current resource usage
-(memory-focused) now largely orthogonal to the learned expected workload
-(CPU-focused), a larger $k$ is required to reach a resource limit.
+We can conclude that the \textsc{Carico} Pods behave correctly.
 
 \subsection{Calculating Cost and Capacity}
-Since the \textsc{Carico} Capacity signal incorporates current resource usage,
-newly scheduling (but not yet running) Pods do not immediately affect the
-Capacity signal. Therefore, a signal reservation mechanism is needed to prevent
-the scheduler from greedily overloading the Node with the current highest score.
-To handle varying Pod workloads, a dynamic estimation of a Pod's "signal cost"
-was required. The method also needed to handle concurrent Pod creation and
-deletions.
+To implement a reservation mechanism, \textsc{Carico} assumes the ability to
+measure Pod count and estimate the Baseline Capacity Signal and Per-Pod-Cost.
+Due to the resource constraints of the \textsc{Carico} Pods, the chosen
+estimation technique must be lightweight and operate on a single pass of
+telemetry. Furthermore, Kubernetes fast-paced and noisy environment, means the
+techniques must handle handle dynamic workloads and noise from container churn.
 
 \subsubsection{Detecting Pod Events}
 \label{sec:listeners-comparison}
-There are numerous ways to detect the addition and removal of Pods from a Node.
-I investigated two event detection approaches: watching the Kubernetes API vs
-ContainerD events. The goals of the listeners were as follows:
+The quality Capacity signal is crucial to the accuracy of estimations. Dynamic
+EMA can't fully eliminate the noise from the container runtime (shown in Figure
+\ref{fig:filtered-metrics-eval}). Therefore, some noise will bleed into the
+Capacity signal and reduce the accrucy of estimates. To combat this, early
+detection of container events can halt estimations during these bursts. Thus,
+the requirements for an event listener are:
 \begin{itemize}
     \item Detect the creation and deletion of Pods to establish a Pod count
     \item Provide warning for potential container-caused churn
 \end{itemize}
-This warning is crucial because the Dynamic EMA can't fully smooth prolonged
-resource spikes from multiple, concurrent container events. Early detection
-allows temporarily halting estimations during such bursts.
-\begin{figure}[H]
+
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/event-comparison-start.pdf}
     \caption{When different event listeners detected the creation of a Pod.}
     \label{fig:event-evaluation-start}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/event-comparison-end.pdf}
     \caption{When different event listeners detected the completion of a Pod.}
     \label{fig:event-evaluation-end}
 \end{figure}
 
-Figures \ref{fig:event-evaluation-start} and
+I investigated two event detection approaches: watching the Kubernetes API vs
+ContainerD events. Figures \ref{fig:event-evaluation-start} and
 \ref{fig:event-evaluation-end} show that communication latency from the
-Kubernetes API causes its listener to miss container runtime resource spikes.
-Without forewarning, Nodes would incorporate these spikes into
-their predictions. On the other hand, we can see that certain container
-events precede the spikes. Though more complex, handling ContainerD events
-directly provides earlier warnings, reducing noise in calculations.
+Kubernetes API causes its listener to miss container runtime resource spikes,
+while initial container events precede the spikes. Though more complex, handling
+ContainerD events directly provides sufficient warning for container churn.
 
 \subsubsection{Estimating Pod-Cost}
 \label{sec:estimating-cost}
-To produce a \textbf{reservable} signal, as per Section
-\ref{sec:spazio-cost-capacity}, \textsc{Carico} requires Nodes to estimate their
-baseline Capacity and Per-Pod-Cost. has the capability of estimating its
-capacity and per-Pod cost. I needed a streaming signal processing technique with
-a low-overhead and the ability to work with a dynamic system (handle changes in
-workloads over time). A Kalman filter \cite{} is a powerful algorithm used for
+A Kalman filter \cite{} is a powerful lightweight streaming algorithm used for
 estimating the true state of a dynamic from a series of noisy and uncertain
 measurements. It's widely applied in fields like navigation (GPS), robotics,
 signal processing and control systems. Its ability to estimate a system's state
@@ -308,25 +297,23 @@ from noisy measurements makes it suitable for this dynamic environment.
 I devised three Kalman filter-based approaches to estimating reservation costs.
 \begin{itemize}
     \item 1D Kalman Filter predicting reservation cost based on the function:
-        \[\Delta \text{signal} = \Delta \text{no. of running Pods} \times
-        \text{cost}\]
+        \[\Delta \text{Capacity signal} = \Delta \text{\# Running Pods} \times
+        \text{Per-Pod-Cost}\]
     \item 2D Kalman Filter to predict the signal based on the function:
-        \[\text{signal} = \text{capacity} + \text{per Pod cost} \times \text{no.
-        of Pods}\]
+        \[\text{Capacity signal} = \text{Baseline Capacity signal} - \text{Per-Pod-Cost}
+        \times \text{\# Running Pods}\]
     \item Two separate 1D Kalman Filters predicting the equation:
-        \[\text{signal} = \text{capacity} + \text{per Pod cost} \times \text{no.
-        of Pods}\]
+        \[\text{Capacity signal} = \text{Baseline Capacity signal} -
+        \text{Per-Pod-Cost} \times \text{\# Running Pods}\]
         Here, each filter learns a separate variable. This separation prevents
         non-zero covariance entries in the state covariance matrix ($\mathbf{P}$),
         mitigating oscillations observed with a single 2D Kalman filter.
 \end{itemize}
-To smooth out predictions, I employed two techniques. First, upon detecting
-container churn via the event listener, the \textsc{Carico} Pod temporarily
-halts estimations. Second, estimations are halted if the Capacity signal reaches
-zero. When the capacity signal is 0, it indicates that at least one resource is
-at capacity. If this occurs and another Pod begins running on the same Node, the
-signal still outputs 0. Otherwise, the filters might inaccurately decrease the
-Per-Pod-Cost, leading to an inflated advertised capacity.
+To ensure accurate estimates, estimations are halted whenever the Capacity signal
+reaches zero. When this occurs, it indicates that at least one resource is fully
+utilised, and additional Pod won't further decrease the observed Capacity
+signal. Filters may account for this behaviour by inaccurately decrease the
+Per-Pod-Cost, leading to an inflated advertised Pod-Capacity.
 
 \begin{figure}[H]
     \centering
@@ -336,18 +323,19 @@ Per-Pod-Cost, leading to an inflated advertised capacity.
     variable-sized bursts of \texttt{bpi(2000)} Pods.}
     \label{fig:filter-evaluation}
 \end{figure}
-To decide the optimal approach, I observed each methods' behaviour when
-executing Jobs of various sizes. This is depicted in Figure
-\ref{fig:filter-evaluation}.
-The $\Delta$-based Kalman filter accurately estimated Per-Pod-Cost, but being
-one-dimensional, could not estimate the Node's baseline Capacity signal. The 2D
-Kalman filter approach provides a simple method for estimating both the Node's
-capacity and its per-Pod cost. Faster convergence for the 2D filter was
-attempted using large process noise covariance ($\mathbf{Q}$) values. This, however,
-led to large oscillations, as the filter adjusted both baseline capacity and
-cost variables to correct errors. The dual 1D Kalman filter was inspired by the
-stability of the 1D Kalman filter. This filter converged quickly and accurately
-without exhibiting the oscillations that plagued the 2D Kalman filter.
+
+To identify the optimal approach, I observed each methods' when under the same
+workloads (shown in Figure \ref{fig:filter-evaluation}). The $\Delta$-based
+Kalman filter accurately estimated Per-Pod-Cost, but being one-dimensional,
+could not estimate the Node's baseline Capacity signal. The 2D Kalman filter
+approach provides a simple method for estimating both the Node's capacity and
+its per-Pod cost. Faster convergence for the 2D filter was attempted using large
+process noise covariance ($\mathbf{Q}$) values. This, however, led to large
+oscillations, as the filter adjusted both baseline capacity and cost variables
+to correct errors. The dual 1D Kalman filter was inspired by the stability of
+the 1D Kalman filter. This filter converged quickly and accurately without
+exhibiting the oscillations that plagued the 2D Kalman filter. Therefore, this
+final approach was used in the \textsc{Carico} Pod implementation.
 
 \section{Aggregation Server}
 \textsc{Pronto} aggregation resembles the distributed agglomerative summary
