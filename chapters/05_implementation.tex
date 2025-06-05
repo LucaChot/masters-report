@@ -146,9 +146,9 @@ definitive capacity measure, explaining the prototype's initial throughput
 limitations.
 
 \subsubsection{Combining CPU Utilisation and CPU Pressure}
-Raw \verb|/proc/pressure| metrics were also insuffice as these metrics
+Raw \verb|/proc/pressure| metrics were also insufficient as these metrics
 barely increased until the Pod count exceeded core count. This would lead to
-unreasonably low intial Per-Pod-Cost estimations and an inflated advertised Node
+unreasonably low initial Per-Pod-Cost estimations and an inflated advertised Node
 Pod-Capacity. I therefore combined both CPU utilisation and CPU pressure
 into a single metric:
 \[ CPU = \frac{\text{CPU Utilisation} + \text{CPU Pressure}}{2} \]
