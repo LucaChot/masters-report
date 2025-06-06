@@ -16,49 +16,48 @@ Reallocated glb_str_end (elt_size=4) to 20 items from 10.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Database file #1: report.bib
-Warning--I didn't find a database entry for ""
 Warning--empty school in gog2018flexible
 Warning--empty publisher in mao2019learning
 Warning--empty journal in welch1995introduction
-You've used 70 entries,
+You've used 71 entries,
             2616 wiz_defined-function locations,
-            949 strings with 18979 characters,
-and the built_in function-call counts, 26700 in all, are:
-= -- 2635
-> -- 812
+            953 strings with 19056 characters,
+and the built_in function-call counts, 26946 in all, are:
+= -- 2658
+> -- 817
 < -- 35
-+ -- 275
-- -- 205
-* -- 1125
-:= -- 3142
-add.period$ -- 222
-call.type$ -- 70
++ -- 277
+- -- 206
+* -- 1128
+:= -- 3172
+add.period$ -- 225
+call.type$ -- 71
 change.case$ -- 67
 chr.to.int$ -- 0
-cite$ -- 73
-duplicate$ -- 982
-empty$ -- 3134
-format.name$ -- 205
-if$ -- 7731
+cite$ -- 74
+duplicate$ -- 992
+empty$ -- 3168
+format.name$ -- 206
+if$ -- 7808
 int.to.chr$ -- 0
-int.to.str$ -- 70
-missing$ -- 53
-newline$ -- 351
-num.names$ -- 56
-pop$ -- 742
+int.to.str$ -- 71
+missing$ -- 55
+newline$ -- 356
+num.names$ -- 57
+pop$ -- 754
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 2089
+skip$ -- 2110
 stack$ -- 0
 substring$ -- 1201
-swap$ -- 385
+swap$ -- 386
 text.length$ -- 41
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 3
-while$ -- 177
-width$ -- 72
-write$ -- 746
-(There were 4 warnings)
+while$ -- 178
+width$ -- 73
+write$ -- 756
+(There were 3 warnings)

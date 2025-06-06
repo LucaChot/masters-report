@@ -96,7 +96,7 @@ scheduler. However, its direct application within a Kubernetes scheduling
 environment faces significant challenges. \textsc{Pronto}'s original design
 assumes zero communication latency and yields only a binary "Reject-Job" signal,
 which lacks the granularity for Node scoring and fails to account
-for significant Pod startup latencies observed in real-world Kubernetes clusters
+for significant Pod start-up latencies observed in real-world Kubernetes clusters
 \cite{qadeer_scaling_2022}. Furthermore, empirical investigations into Linux
 Pressure Stall Information (PSI) metrics, a potential replacement for the VMware
 vSphere CPU-Ready metric, revealed frequent transient spikes attributed to the

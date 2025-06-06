@@ -55,7 +55,7 @@ LASTPAGE := $(shell expr $(LASTPAGE) - 1)
 
 wordcount: $(WORDCOUNT_FILE).pdf
 	gs -q -dSAFER -sDEVICE=txtwrite -o - \
-	   -dFirstPage=10 -dLastPage=59 $< | \
+	   -dFirstPage=13 -dLastPage=62 $< | \
 	egrep '[A-Za-z]{3}' | wc -w
 
 clean:

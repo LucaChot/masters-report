@@ -48,7 +48,7 @@ settings:
         consist of a single monolithic scheduler that executes the entire
         scheduling logic to place tasks on available resources~\cite{schwarzkopf2016evolution}. This
         design allows for more sophisticated policies to be applied. To overcome the
-        issue of a single point of failure (SOPF), centralised scheduelers are
+        issue of a single point of failure (SOPF), centralised schedulers are
         often configured in a highly available topology~\cite{boutin2014apollo, ungureanu2019kubernetes, verma2015large},
         where in the case of a failure, a leader election round is triggered.
 
@@ -85,7 +85,7 @@ settings:
         over-utilised when workload characteristics change~\cite{gog_firmament_2016}.
 \end{itemize}
 
-Much resarch has also gone into developing different algorithms for
+Much research has also gone into developing different algorithms for
 scheduling.\\
 \textbf{Multi-dimensional resource allocation} transforms scheduling into a
 bin-packing problem. Schedulers like Quincy~\cite{isard2009quincy} and Jockey~\cite{ferguson2012jockey}
@@ -111,8 +111,8 @@ constraints, as well as affinity/anti-affinity constraints.
 Finally, schedulers like \cite{boutin2014apollo, karanasos2015mercury, verma2015large,
 gog_firmament_2016, mao2019learning, ousterhout2013sparrow}
 rely on \textbf{predictions of node's future resource
-availablilty} to avoid saturation and efficently utilise resources across data
-center nodes. Approaches range from probing available nodes on an on-demand
+availability} to avoid saturation and efficiently utilise resources across
+datacenter nodes. Approaches range from probing available nodes on an on-demand
 basis~\cite{ousterhout2013sparrow,verma2015large} to collectively
 generated telemetry across the datacenter and using offline machine learning
 prediction to tackle over-subscription~\cite{cortez2017resource}. While it has
@@ -129,7 +129,7 @@ datacenter nodes for online task scheduling.
 
 \subsection{Kubernetes Overview}
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/components-of-kubernetes.pdf}
     \caption{The components of a Kubernetes cluster~\cite{kubernetes-components}}
@@ -178,7 +178,7 @@ container's resource usage. In Kubernetes, the resource units for
     \item \textbf{CPU:} The metric used is \textit{cpu} units, where 1 cpu unit
         is equivalent to a 1 physical/virtual core. Fractional requests are
         permitted with the notation $x$m; $100$m can be read as ``one hundred
-        millicpu".
+        milliCPU".
     \item \textbf{Memory:} This is measured in bytes. Kubernetes also allows the
         use of quantity suffixes, such as, k, M, G, Ki, Mi, Gi.
 \end{itemize}
@@ -311,8 +311,8 @@ PCA, FPCA can be considered as Federated SVD~\cite{grammenos2020federated} on
 mean-centered data.
 
 \subsection{Low-Rank Approximations}
-It can be shown that using the first $r$ eignenvectors in the above algorithms
-approximate the result of using all $m$ eignenvectors, i.e. if
+It can be shown that using the first $r$ eigenvectors in the above algorithms
+approximate the result of using all $m$ eigenvectors, i.e. if
 \begin{align}
 \mathbf{Y} = \begin{bmatrix} \mid & & \mid \\ u_1 & \ldots & u_m
     \\ \mid & & \mid  \end{bmatrix} \begin{bmatrix} \sigma_1 &
@@ -327,7 +327,7 @@ Incremental-SVD and Subspace-Merge. This lets \textsc{Pronto} reduce the number 
 computations it performs and its memory usage.
 
 \subsection{\protect\textsc{Pronto} System Overview}
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/pronto-agg.png}
     \caption{How local models are aggregated in \textsc{Pronto}. Dedicated aggregator
@@ -342,7 +342,7 @@ nodes perform Subspace-Merge on incoming subspaces, with subspace produced by
 the root aggregator node being propagated back to the compute nodes.
 
 \subsection{\protect\textsc{Pronto} Reject-Job Signal}
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/pronto}
     \caption{Projection of incoming $y \in \mathbb{R}^d$ onto embedding $U \in
@@ -363,7 +363,7 @@ scheduled on that node.
 
 \subsection{Strengths}
 \textsc{Pronto}'s core strength is its ability to leverage global telemetry data
-to predict performance degradation with high accuracy. The orginal
+to predict performance degradation with high accuracy. The original
 \textsc{Pronto} paper~\cite{grammenos_pronto_2021}, which compared its
 effectiveness against non-distributed dimensionality-reduction methods,
 demonstrated superior performance in predicting CPU-Ready spikes in real-world
@@ -392,14 +392,14 @@ fundamental challenges:
         immediately reflected in a node's telemetry, and therefore, its
         Reject-Job signal. In such a scenario, a central scheduler could
         instantaneously stop assigning workloads once a Node signal potential
-        degredation. However, this assumption does not hold in real-world
+        degradation. However, this assumption does not hold in real-world
         Kubernetes clusters. The latency between a pod being bound to a Node and
         that Pod actually starting to run and consume resources has been shown
         to reach as high as 4 seconds \cite{qadeer_scaling_2022}. Directly
         applying \textsc{Pronto}'s binary signal in this high-latency
-        environment could lead to a ``runaway train" schenario": Nodes might
+        environment could lead to a ``runaway train" scenario": Nodes might
         advertise willingness to accept new Pods while a large number of
-        ``inflight" Pods are still pending startup and will overload the node
+        ``in-flight" Pods are still pending start-up and will overload the node
         once active. This highlights the need for a reservation mechanism for
         a node's signal.
     \item \textbf{Lack of Explicit Allocation Algorithm:} \textsc{Pronto} allows
@@ -473,7 +473,7 @@ investigate the feasibility of using PSI for peak prediction within a Kubernetes
 Node, I polled the polled the \verb|/proc/pressure| files under different
 workloads.
 
-\begin{figure}[htbp] % Added 'b' and 'p' for better placement flexibility
+\begin{figure}[ht!] % Added 'b' and 'p' for better placement flexibility
     \centering % Centers the entire figure
 
     % --- First Row ---
@@ -515,12 +515,12 @@ workloads.
 
 Figure \ref{fig:pressure-combined} shows how lightweight workloads can still cause the
 PSI metrics to experience significant spikes. These transient spikes
-can be attributed to the container runtime (e.g. Containerd) consuming resources
-during the creation or deleteion of containers. This ``noise" would be
+can be attributed to the container runtime (e.g. containerd) consuming resources
+during the creation or deletion of containers. This ``noise" would be
 difficult to distinguish from genuine indicators of resource contention ,
 compromising the accuracy of \textsc{Pronto}'s peak-detection mechanism.
 
-\begin{figure}[htbp] % Added 'b' and 'p' for better placement flexibility
+\begin{figure}[ht!] % Added 'b' and 'p' for better placement flexibility
     \centering % Centers the entire figure
 
     % --- First Row ---
@@ -615,7 +615,7 @@ scheduler:
 \section{Summary}
 This chapter provided the foundational knowledge for the dissertation,
 introducing an overview of the Kubernetes architecture and its scheduling
-mechnaism. It then introduced \textsc{Pronto}, a novel approach to scheduling,
+mechanism. It then introduced \textsc{Pronto}, a novel approach to scheduling,
 explaining the core mathematics behind its FPCA, and highlighting its accuracy
 in predicting performance degradation through global telemetry. Finally, we
 identified significant limitations of \textsc{Pronto}, and produced the

@@ -162,7 +162,7 @@ milliCPU, comparing its PCT with \textsc{Carico} gives 25\% higher mean with
 \end{figure}
 
 Figure \ref{fig:pi-2000-1000x-pod-running} gives the running Pod count of Nodes
-during the runs used in Table \ref{tab:cpu-pod-completions}. Underestimating the
+during the runs used in Figure \ref{fig:pi-pod-completion}. Underestimating the
 resource request allows \texttt{kube-scheduler} to pack more Pods on a Node at
 once. This results in higher resource contention as more Pods have to share
 their time on the CPU and take longer to finish their computation. Conversely,
@@ -242,7 +242,7 @@ explains \textsc{Carico}'s higher JCT.
 % In this section, I investigate the resource utilisation during the Job traces
 % explored in Section \ref{sec:eval-pod-completion}.
 
-\begin{figure}[h]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/pi-util.pdf}
     \caption{Resource utilisation during the 1000 \texttt{pi-2000} Pod
@@ -358,7 +358,6 @@ heterogeneous workloads.
     % Job and a 20 Pod \texttt{sklearn} Job.}
     % \label{tab:mixed-pod-completions}
 % \end{table}
-
 \begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/mixed-pod-completion.pdf}
@@ -419,26 +418,36 @@ Pod which periodically sends HTTP GET requests measure the response latency. We
 can then measure the impact \textsc{Carico} and \texttt{kube-scheduler} have on
 the response latency when they each schedule a large Job.
 
-\begin{table}[h!]
-\centering
-    \begin{tabular}{|l|c|c|c|c|c|c|}
-    \hline
-    \textbf{Scenario} & \multicolumn{6}{c|}{\textbf{Response Latency (ms)}} \\
-    \cline{2-7}
-    & \textbf{Min} & \textbf{Med} & \textbf{P90} & \textbf{P95} & \textbf{P99} & \textbf{Max} \\
-    \hline
-    Pristine Conditions & 0.99 & 3.04 & 3.78 & 4.00 & 4.47 & 8.32 \\
-    \texttt{kube-scheduler} Scheduler & 1.07 & 10.06 & 18.61 & 22.28 & 28.82 & 54.49\\
-    \textsc{Carico}  & 1.00 & 2.48 & 6.09 & 7.82 & 10.53 & 17.39\\
-    \hline
-    \end{tabular}
-    \caption{The distribution of a servers response latency when different
-    schedulers allocate a 1000 \texttt{pi-2000} Pod Job across the cluster. Pods
-    request 100 milliCPU.}
-    \label{tab:impacted-latency}
-\end{table}
+% \begin{table}[h!]
+% \centering
+    % \begin{tabular}{|l|c|c|c|c|c|c|}
+    % \hline
+    % \textbf{Scenario} & \multicolumn{6}{c|}{\textbf{Response Latency (ms)}} \\
+    % \cline{2-7}
+    % & \textbf{Min} & \textbf{Med} & \textbf{P90} & \textbf{P95} & \textbf{P99} & \textbf{Max} \\
+    % \hline
+    % Pristine Conditions & 0.99 & 3.04 & 3.78 & 4.00 & 4.47 & 8.32 \\
+    % \texttt{kube-scheduler} Scheduler & 1.07 & 10.06 & 18.61 & 22.28 & 28.82 & 54.49\\
+    % \textsc{Carico}  & 1.00 & 2.48 & 6.09 & 7.82 & 10.53 & 17.39\\
+    % \hline
+    % \end{tabular}
+    % \caption{The distribution of a servers response latency when different
+    % schedulers allocate a 1000 \texttt{pi-2000} Pod Job across the cluster. Pods
+    % request 100 milliCPU.}
+    % \label{tab:impacted-latency}
+% \end{table}
+%
 
-Table \ref{tab:impacted-latency} contains these results and demonstrates that
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=\textwidth]{images/response-latency.pdf}
+    \caption{The impact schedulers have  on a running server's response latency
+    when scheduling 1000 \texttt{pi-2000} Pod Jobs. The requested resources are
+    given when using \texttt{kube-scheduler}.}
+    \label{fig:impacted-latency}
+\end{figure}
+
+Figure \ref{fig:impacted-latency} contains these results and demonstrates that
 \texttt{kube-scheduler} significantly shift the response latency distribution,
 almost tripling the median and a $\approx \times 7$ larger tail latency.
 However, \textsc{Carico} achieves a lower median and only a $\approx \times2$

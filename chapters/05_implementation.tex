@@ -13,7 +13,7 @@
 The \textsc{Carico} system consists of three core components (Figure
 \ref{fig:spazio-system}):
 \begin{itemize}
-    \item \textsc{Carico} DaemonSet: This Pod collectes telemetry from a
+    \item \textsc{Carico} DaemonSet: This Pod collects telemetry from a
         Node and generates its subspace and Pod-Capacity  signal. This signal is
         periodically sent to the Scheduling Service. When the \textsc{Carico}
         Pod deems its subspace outdated, it requests the latest aggregated
@@ -25,7 +25,7 @@ The \textsc{Carico} system consists of three core components (Figure
 \end{itemize}
 
 \section{\textsc{Carico} Pod}
-\begin{figure}[H]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/carico-pod.pdf}
     \caption{Core behaviour within the \textsc{Carico} Pod}
@@ -44,17 +44,17 @@ achieved the best results.
 To achieve an update frequency of 1Hz, \textsc{Carico} Pods must collect batches
 of telemetry data every second. To construct a batch of telemetry,
 \textsc{Carico} Pods must periodically poll resource metrics and [0,1]-normalise
-them. This polling frequency is also limited by the overhead it incurrs. I
+them. This polling frequency is also limited by the overhead it incurs. I
 explored two primary sources of telemetry data:
 \begin{itemize}
     \item Metrics Server: a cluster add-on that acts as a centralised source of
-        container reosurce metrics.
+        container resource metrics.
     \item \verb|/proc/|: a pseudo-filesystem within Linux that exposes real-time
         information about running processes and system's hardware.
 \end{itemize}
 
 Metrics Server uses a scraper to periodically (default every 15 seconds) collect
-resource metrics from Kubelets and exposes them from its
+resource metrics from \texttt{kubelet}s and exposes them from its
 \verb|metrics.k8s.io/v1| APIService. While simple to use, it offers limited
 metrics (CPU and RAM utilisation only) and introduces additional latency.
 Moreover, its default scraping interval is too infrequent, potentially missing
@@ -174,7 +174,7 @@ Further investigations, shown in Figure \ref{fig:podcount-util-pressure},
 revealed that even after a Node achieves 100\% CPU utilisation, the contribution
 of each Pod to the Job Completion time decreases: running more Pods on a Node
 resulted in higher throughput. As the cluster runs on virtual machines (VMs), I
-hypothesise that the hypervisor inadvertantly masks contention effects like
+hypothesise that the hypervisor inadvertently masks contention effects like
 cache and CPU thrashing when providing a hardware abstraction. Consequently,
 high CPU utilisation does not correlate with performance degradation, and thus,
 is not an accurate measure of capacity.
@@ -184,12 +184,12 @@ is not an accurate measure of capacity.
 \[ \text{CPU Pressure} = \Delta \text{total} \times \text{polling frequency} \]
 aren't sufficient as they do not initially exhibit a linear relation with Pod
 count (Figure \ref{fig:podcount-util-pressure}). This would lead to
-unreasonably low intial Per-Pod-Cost estimations and an inflated advertised Node
+unreasonably low initial Per-Pod-Cost estimations and an inflated advertised Node
 Pod-Capacity. However, by combining CPU utilisation and CPU pressure,
 \[ CPU = \frac{\text{CPU Utilisation} + \text{CPU Pressure}}{2} \]
 the resulting metric exhibits a pseudo-linear relation with Pod count and
 doesn't saturate to quickly (Figure \ref{fig:podcount-util-pressure}): it ouputs
-1 when \verb|/proc/pressure/cpu| indicates persistant CPU demand (at least one
+1 when \verb|/proc/pressure/cpu| indicates persistent CPU demand (at least one
 thread always waiting)
 
 \subsection{Filtering Metrics}
@@ -289,7 +289,7 @@ while the remaining Nodes in the cluster execute a CPU-intense workload
 CPU-intense workload is scheduled on its peers. This is expected as the
 subspaces of surrounding Nodes, and thus the aggregated subspace, will reflect a
 more costly CPU-focused workload (larger $\sigma_1$).  After aggregating its
-subspace, combinings its unchanged resource usage with the new increased
+subspace, combining its unchanged resource usage with the new increased
 expected workload (reflecting in $\sigma_1 u_1$) results in a smaller $k$ (fewer
 units of this workload can be added), and thus a lower Capacity signal.
 
@@ -326,7 +326,7 @@ techniques must handle handle dynamic workloads and noise from container churn.
 The quality Capacity signal is crucial to the accuracy of estimations. Dynamic
 EMA can't fully eliminate the noise from the container runtime (shown in Figure
 \ref{fig:filtered-metrics-eval}). Therefore, some noise will bleed into the
-Capacity signal and reduce the accrucy of estimates. To combat this, early
+Capacity signal and reduce the accuracy of estimates. To combat this, early
 detection of container events can halt estimations during these bursts. Thus,
 the requirements for an event listener are:
 \begin{itemize}
@@ -352,10 +352,10 @@ the requirements for an event listener are:
 \end{figure}
 
 I investigated two event detection approaches: watching the Kubernetes API vs
-ContainerD events. Figure \ref{fig:event-evaluation} shows that communication
+containerd events. Figure \ref{fig:event-evaluation} shows that communication
 latency from the Kubernetes API causes its listener to miss container runtime
 resource spikes, while initial container events precede the spikes. Though more
-complex, handling ContainerD events directly provides sufficient warning for
+complex, handling containerd events directly provides sufficient warning for
 container churn.
 
 \subsubsection{Estimating Pod-Cost}
@@ -387,7 +387,7 @@ utilised, and additional Pod won't further decrease the observed Capacity
 signal. Filters may account for this behaviour by inaccurately decrease the
 Per-Pod-Cost, leading to an inflated advertised Pod-Capacity.
 
-\begin{figure}[H]
+\begin{figure}[ht!]
     \centering
     % \includegraphics[width=0.45\textwidth]{images/filter-signal.png}
     \includegraphics[width=\textwidth]{images/filter-comparison.pdf}
@@ -415,7 +415,7 @@ local subspaces and return the global aggregated subspace. \textsc{Pronto}'s
 approach resembles the distributed agglomerative summary model (DASM) \cite{tanenbaum2002distributed}.
 Subspaces are aggregated in a "bottom-up" approach following a tree-structure
 depicted in Figure \ref{pronto-agg}. While this approach reportedly requires
-minimal synchonisation, it demands multiple dedicated Pods, and Kubernetes'
+minimal synchronisation, it demands multiple dedicated Pods, and Kubernetes'
 inherent communication latency could significantly delay global model updates
 after workload changes.
 
@@ -433,7 +433,7 @@ Remote Procedure Call) and their local subspace. The Aggregation Server
 corresponding gRPC function enqueues the input subspace to be aggregated and
 returns its latest view of the global model, which the \textsc{Carico} Pods then
 aggregate locally with their subspace. Decoupling model aggregation from the
-gRPC call's critical path reduces server load. Furthermore, as the Aggregate
+gRPC's critical path reduces server load. Furthermore, as the Aggregate
 Server does not wait for all the pending subspaces to have been aggregated, it
 trades consistency for latency.
 
@@ -455,7 +455,7 @@ The purpose of this component is to allocate Pods to Nodes, based on the Nodes'
 latest Pod-Capacity scores. Furthermore, it keeps track of all Pod reservations.
 
 \subsection{Kubernetes Scheduler Plugin}
-\begin{figure}[H]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/scheduling-framework-extensions.png}
     \caption{The Kubernetes scheduling framework extension points
@@ -468,8 +468,8 @@ points at which scheduler plugins register to be invoked. A scheduler plugin can
 register to multiple extension points, with each extension point defining an
 interface: a set of functions the scheduler plugin has to implement.
 
-Developing a \textsc{Carico}-based scheduler plugin, rather than a standalone
-scheduelr, simplified implemention and offered many performance benefits. First,
+Developing a \textsc{Carico}-based scheduler plugin, rather than a stand-alone
+scheduler, simplified implementation and offered many performance benefits. First,
 \textsc{Carico}'s \textbf{filter}, \textbf{score}, and \textbf{reserve}
 operations (given in Section \ref{sec:spazio-cost-capacity}) have one-to-one
 mapping to the framework's extension points. Second, the framework provides

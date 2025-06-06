@@ -64,7 +64,7 @@ matrices}.
 Instead, \textsc{Carico} is built on top of  a different set of interpretations.
 Using the Lemma proved in Appendix \ref{app:vector-to-avg}, we can interpret the
 first left singular vector $u_1$ in $\mathbf{U}$ as a pseudo-weighted average
-direction of the datapoints in the matrix: ``larger" or more aligned columns
+direction of the data points in the matrix: ``larger" or more aligned columns
 contribute more significantly to the sum defining $u_1$, and thus to its final
 direction. Thus $u_1$ behaves as a primary indicator of the direction of the
 current workload's resource usage.
@@ -149,7 +149,7 @@ Using the established interpretations:
     \item $\sigma_1$: the magnitude of the resource usage of recent workloads
 \end{itemize}
 we can derive a new capacity signal that considers both the estimated
-workload resource usage and its current resource usage. Given the the current
+workload resource usage and its current resource usage. Given the current
 [0,1]-normalised resource usage vector for the node $y$, the first singular
 value and left singular vector $\sigma_1$, $u_1$ from the latest subspace ($U$,
 $\Sigma$), a Node's estimated ``Capacity" signal $k$ is given by:
@@ -172,7 +172,7 @@ To better understand how this signal works, I explore how the Capacity signal
 changes under different different workloads. These scenarios will also be used to
 verify the Capacity signal implementation in the prototype.
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=\textwidth]{images/conflicting-workload.pdf}
     \caption{Visualisations of a Node's resource usage $y$ and expected resource
@@ -187,7 +187,7 @@ $k$ is needed before the combined vectors cross a resource boundary. The Node,
 thus, advertises a smaller capacity signal as it has less capacity for
 the expected resource usage.
 
-\begin{figure}[ht]
+\begin{figure}[ht!]
     \centering
     \includegraphics[width=0.8\textwidth]{images/complementary-workload.pdf}
     \caption{Visualisations of a Node's resource usage $y$ and expected resource
@@ -198,7 +198,7 @@ the expected resource usage.
 Figure \ref{fig:complementary-workload} presents the scenario where a Node updates
 its local model, learning that the learned workload is using more resources but
 in a different direction. This could be described as a complementary workload as
-the the new expected resource utilisation requires a larger constant $k$ to
+the new expected resource utilisation requires a larger constant $k$ to
 cross a resource boundary. Therefore, the Node advertises a higher capacity
 signal as it has more capacity for the new expected resource utilisation.
 
@@ -206,8 +206,8 @@ signal as it has more capacity for the new expected resource utilisation.
 \label{sec:spazio-cost-capacity}
 Like \textsc{Pronto}, \textsc{Carico}'s signal uses its current resource usage, and therefore, only
 reflects Pods that have been scheduled and are running on the Node. For
-\textsc{Carico} to account for Pod startup latency, the central scheduler must be able
-to predict the a Pod's effect on a Node's signal. Consequently, \textsc{Carico}
+\textsc{Carico} to account for Pod start-up latency, the central scheduler must be able
+to predict a Pod's effect on a Node's signal. Consequently, \textsc{Carico}
 assumes that Nodes know the number of currently running Pods and have the
 ability to estimate their:
 \begin{enumerate}
@@ -289,7 +289,7 @@ difficult to score Nodes. \textsc{Carico}'s $\text{Pod-Capacity} \in
 
 \textbf{Latency Resilient:} Unlike \textsc{Pronto} which assumes no communication
 latency, \textsc{Carico} was designed with Kubernetes in mind, and thus must consider
-possible latency in communication and Pod startup. \textsc{Carico}'s
+possible latency in communication and Pod start-up. \textsc{Carico}'s
 $\text{Pod-Capacity}$'s unit of measure allows the central scheduler to easily
 track the estimated cost of Pods in-flight, ensuring subsequent scheduling
 decisions do not mistakenly overload a Node with a high $\text{Pod-Capacity}$.
@@ -353,7 +353,7 @@ Machine Learning (ML) algorithms  are increasingly adopted in scheduling to
 learn from data and improving decision quality. These range from
 Deep-Reinforcement learning-based schedulers \cite{bao2019deep, huang2020rlsk,
 peng2021dl2, han2021tailored} that use reward functions to continuously improve
-scheduling decisions, to domain-specifc to application or resource utilisation
+scheduling decisions, to domain-specific to application or resource utilisation
 predictions~\cite{yang2019design, carvalho2021qoe, harichane2020proposal}.
 Instead, \textsc{Carico} exploits properties of simple SVD to learn
 characteristics of recent workloads, giving it broad applications with minimal
