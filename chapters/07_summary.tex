@@ -33,7 +33,7 @@ Completion times to the default kube-scheduler, crucially without requiring
 explicit Pod resource requests. More significantly, it consistently achieved
 substantially lower Pod Completion times and improved workload isolation,
 highlighting its effectiveness as a Quality of Service (QoS) scheduler. The
-evaluation also confirmed CARICO's low overhead, estimated at approximately 2\%,
+evaluation also confirmed \textsc{Carico}'s low overhead, estimated at approximately 2\%,
 making it a practical solution for real-world deployments. These results,
 combined with \textsc{Carico} portable nature, highlight its potential to
 significantly enhance scheduling efficiency and resource utilisation in
@@ -43,30 +43,23 @@ performance-aware approach.
 % What is the impact of this paper
 
 \section{Future Work}
-The insights gained from \textsc{Carico}'s development and evaluation open several
-promising avenues for future research. One significant direction involves
-exploring \textsc{Carico}'s applicability in other scheduling environments where explicit
-resource requests are either impractical or unavailable. The core design
-principles of \textsc{Carico}, particularly its federated, asynchronous, and
-memory-limited nature, coupled with its ability to derive meaningful capacity
-signals from telemetry, are not intrinsically tied to Kubernetes. This inherent
-simplicity suggests that \textsc{Carico} could be adapted for diverse scheduling
-challenges beyond container orchestration.
+The insights gained from \textsc{Carico}'s development and evaluation open
+several promising avenues for future research. One significant direction
+involves exploring \textsc{Carico}'s applicability in other scheduling
+environments where explicit resource requests are either impractical or
+unavailable. The core design principles of \textsc{Carico}, particularly its
+federated, asynchronous, and memory-limited nature, coupled with its ability to
+derive meaningful capacity signals from telemetry, are not intrinsically tied
+to Kubernetes and could be adapted for diverse scheduling challenges beyond
+container orchestration.
 
-Further research could also focus on expanding the range of metrics \textsc{Carico}
-utilizes for its capacity signal generation. Currently, \textsc{Carico} primarily uses
-CPU and memory metrics. Incorporating additional telemetry data, such as network
-I/O, disk I/O, or GPU utilization, could potentially provide a more holistic and
-accurate representation of a Node's workload capacity, leading to even more
-optimized scheduling decisions.
-
-Finally, an important area of exploration is to evaluate \textsc{Carico}'s performance on
-physical machines rather than virtualized environments. As noted in the
-evaluation, hypervisors can mask certain performance degradation effects, making
-CPU utilization alone an unreliable indicator of true contention. Testing \textsc{Carico}
-on bare-metal servers could reveal how its telemetric-only approach performs
-when telemetry data is more directly representative of underlying hardware
-contention and actual performance degradation. This would provide valuable
-insights into \textsc{Carico}'s robustness and effectiveness in diverse infrastructure
-settings.
-
+Further research could also focus on \textsc{Carico}'s implementation. A
+potential direction is to expand \textsc{Carico}'s metric range beyond CPU and
+memory with network I/O, disk I/O, or GPU utilisation, to offer a more holistic
+and accurate representation of workloads' resource utilisation. Additionally, it
+is crucial to evaluate \textsc{Carico}'s performance on physical machines rather
+than VMs, as hypervisors can mask certain performance degradation effects, making
+CPU utilisation alone an unreliable indicator of true contention. This would
+investigate the performance impact from using telemetry data that is more
+directly representative of underlying hardware contention and actual performance
+degradation.

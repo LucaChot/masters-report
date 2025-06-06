@@ -283,7 +283,56 @@ A similar argument holds if $y \leq x$. Therefore:
 
 \chapter{Evaluation Setup}
 
+\section{Scheduling Objectives}
+\label{app:setup-objectives}
+\textbf{Job Completion - Section \ref{sec:eval-job-completion}:}\\
+Schedulers often aim to reduce the time it takes for a job or a set of jobs to
+complete. In Kubernetes, Jobs are specified by a template of the Pods to be
+executed, the total number of Pods to complete (\texttt{completions}) and the
+maximum number of Pods running at once (\texttt{parallelism}). Job completion
+time (JCT) is defined as the time between a Job object being published to the
+Kubernetes API and the time when the last Pod of the Job completes. During the
+experiments, I set \texttt{parallelism} to \texttt{completions} so that only
+\texttt{kube-scheduler}'s decisions impact Job completion.
+
+\textbf{Pod Completion - Section~\ref{sec:eval-pod-completion}:}\\
+Another common goal is to reduce the time it takes for idividual tasks to complete.
+This section investigates the distribution of Pod Completion time (PCT): the
+time it takes from when a Pod starts running to when it completes. In addition,
+traces of the number of concurrently running Pods on each Node during Job
+execution are used to explain the PCTs.
+
+\textbf{Resource Utilisation - Section~\ref{sec:eval-util}:}\\
+Since resources are expensive, data canters aim to ensure that resources are
+well utilised with efficient placements. Over-utilisation can result in large
+amounts of resource thrashing, which wastes resources and hurts a data canters
+profitability. As \textsc{Carico} currently only uses CPU and memory metrics
+for scheduling, only the utilisation of those resources are measured during the
+execution of Jobs.
+
+\textbf{Workload Heterogeneity - Section~\ref{sec:eval-hetero}:}\\
+As outlined in \ref{sec:background-datacenters}, data canters must handle
+workloads with different characteristics, such as, resource usage and running
+times. This section evaluates \textsc{Carico} performance with multiple Jobs
+with different characteristics.
+
+\textbf{Workload Isolation - Section~\ref{sec:eval-isolation}:}\\
+Data canters have to deal with jobs with different QoS requirements. One of
+these requirements is workload isolation: whether the execution of one Job will
+interfere with the execution of another, impacting a user's experience. This
+experiment measures the impact on a scheduling decisions on the response latency
+of a server running in the cluster.
+
+\textbf{Overhead - Section~\ref{sec:eval-overhead}:}\\
+Due to the limited number of resources that need to be shared between users,
+schedulers must mitigate their overhead. A lower overhead frees up more
+resources for users and providers can achieve higher profits margins. This
+experiment measures the overhead incurred from running the DaemonSet of
+\textsc{Carico} Pods.
+
+
 \section{Cluster Setup}
+\label{app:setup-cluster}
 
 These experiments ran on a Kubernetes cluster containing 20 virtual machines
 (VMs) running on the Xen hypervisor. One of the machines is used as the master
@@ -304,6 +353,7 @@ object completions.
 % chapter.
 
 \section{Experimental Workloads}
+\label{app:setup-workloads}
 During the experiments I used very short-lived workloads; workloads that take
 less than a minute to complete. While data canters can expect to receive
 longer-running workloads, using them in the evaluation was not feasible due to

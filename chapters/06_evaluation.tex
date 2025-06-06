@@ -6,61 +6,30 @@ Kubernetes scheduler, comparing it against the default industry-standard
 similar telemetric-only schedulers due to their limited number and time
 constraints. For the evaluation, I use a set of common scheduling objectives
 used by data canter providers~\cite{vijayakumar2024scheduling}:
+\begin{enumerate}
+    \item \textbf{Job Completion - Section \ref{sec:eval-job-completion}}
+    \item \textbf{Pod Completion - Section~\ref{sec:eval-pod-completion}}
+    \item \textbf{Resource Utilisation - Section~\ref{sec:eval-util}}
+    \item \textbf{Workload Heterogeneity - Section~\ref{sec:eval-hetero}}
+    \item \textbf{Workload Isolation - Section~\ref{sec:eval-isolation}}
+    \item \textbf{Overhead - Section~\ref{sec:eval-overhead}}
+\end{enumerate}
 
-\textbf{Job Completion - Section \ref{sec:eval-job-completion}:}\\
-Schedulers often aim to reduce the time it takes for a job or a set of jobs to
-complete. In Kubernetes, Jobs are specified by a template of the Pods to be
-executed, the total number of Pods to complete (\texttt{completions}) and the
-maximum number of Pods running at once (\texttt{parallelism}). Job completion
-time (JCT) is defined as the time between a Job object being published to the
-Kubernetes API and the time when the last Pod of the Job completes. During the
-experiments, I set \texttt{parallelism} to \texttt{completions} so that only
-\texttt{kube-scheduler}'s decisions impact Job completion.
-
-\textbf{Pod Completion - Section~\ref{sec:eval-pod-completion}:}\\
-Another common goal is to reduce the time it takes for idividual tasks to complete.
-This section investigates the distribution of Pod Completion time (PCT): the
-time it takes from when a Pod starts running to when it completes. In addition,
-traces of the number of concurrently running Pods on each Node during Job
-execution are used to explain the PCTs.
-
-\textbf{Resource Utilisation - Section~\ref{sec:eval-util}:}\\
-Since resources are expensive, data canters aim to ensure that resources are
-well utilised with efficient placements. Over-utilisation can result in large
-amounts of resource thrashing, which wastes resources and hurts a data canters
-profitability. As \textsc{Carico} currently only uses CPU and memory metrics
-for scheduling, only the utilisation of those resources are measured during the
-execution of Jobs.
-
-\textbf{Workload Heterogeneity - Section~\ref{sec:eval-hetero}:}\\
-As outlined in \ref{sec:background-datacenters}, data canters must handle
-workloads with different characteristics, such as, resource usage and running
-times. This section evaluates \textsc{Carico} performance with multiple Jobs
-with different characteristics.
-
-\textbf{Workload Isolation - Section~\ref{sec:eval-isolation}:}\\
-Data canters have to deal with jobs with different QoS requirements. One of
-these requirements is workload isolation: whether the execution of one Job will
-interfere with the execution of another, impacting a user's experience. This
-experiment measures the impact on a scheduling decisions on the response latency
-of a server running in the cluster.
-
-\textbf{Overhead - Section~\ref{sec:eval-overhead}:}\\
-Due to the limited number of resources that need to be shared between users,
-schedulers must mitigate their overhead. A lower overhead frees up more
-resources for users and providers can achieve higher profits margins. This
-experiment measures the overhead incurred from running the DaemonSet of
-\textsc{Carico} Pods.
-
-To ensure a fair comparison between \textsc{Carico} (telemetric-only scheduler)
-and \texttt{kube-scheduler} (resource description-based scheduler), I use a
-range of resource requests with \texttt{kube-scheduler} to highlight how much
-the performance can vary with different resource request.
+The motivation and definition of these scheduling objectives are outlined in
+Appendix \ref{app:setup-objectives}. In addition, the cluster setup and
+workloads used are provided in Appendix \ref{app:setup-cluster} and
+\ref{app:setup-workloads}. To ensure a fair comparison between \textsc{Carico}
+(telemetric-only scheduler) and \texttt{kube-scheduler} (resource
+description-based scheduler), I use a range of resource requests with
+\texttt{kube-scheduler} to highlight how much the performance can vary with
+different resource request.
 
 
 \section{Job Completion}
 \label{sec:eval-job-completion}
-
+Job completion time (JCT) is defined as the time between a Job object being
+published to the Kubernetes API and the time when the last Pod of the Job
+completes.
 % \begin{table}[ht!]
 % \centering
     % \begin{tabular}{|l|r|c|c|c|c|c|}
@@ -144,26 +113,37 @@ present the JCT for runs requesting less than 750Mi bytes of memory.
 In this section, I compare the individual Pod Completion times (PCT) from the
 traces of different Job executions.
 
-\begin{table}[h!]
-\centering
-    \begin{tabular}{|l|r|c|c|c|c|c|c|c|}
-    \hline
-        \bfseries Scheduler & \bfseries CPU Request & \bfseries Mean & \bfseries Std. &
-        \bfseries Min. & \bfseries 25\% & \bfseries Median & \bfseries 75\% & \bfseries Max. \\
-    \hline
-        \texttt{kube-scheduler} & 100m & 47.43 & 14.59 & 7.00 & 39.00 & 52.00 & 57.00 & 73.00
-        \\
-        \texttt{kube-scheduler} & 500m & 9.55 & 1.49 & 5.00 & 9.00 & 10.00 & 10.00 & 14.00
-        \\
-        \textsc{Carico} & & 7.69 & 0.99 & 5.00 & 7.00 & 8.00 & 8.00 & 11.00 \\
-    \hline
-    \end{tabular}
-    \caption{PCT of a trace when executing a \texttt{pi-2000} Job
-    with 1000 Pods under different schedulers.}
-    \label{tab:cpu-pod-completions}
-\end{table}
+% \begin{table}[h!]
+% \centering
+    % \begin{tabular}{|l|r|c|c|c|c|c|c|c|}
+    % \hline
+        % \bfseries Scheduler & \bfseries CPU Request & \bfseries Mean & \bfseries Std. &
+        % \bfseries Min. & \bfseries 25\% & \bfseries Median & \bfseries 75\% & \bfseries Max. \\
+    % \hline
+        % \texttt{kube-scheduler} & 100m & 47.43 & 14.59 & 7.00 & 39.00 & 52.00 & 57.00 & 73.00
+        % \\
+        % \texttt{kube-scheduler} & 500m & 9.55 & 1.49 & 5.00 & 9.00 & 10.00 & 10.00 & 14.00
+        % \\
+        % \textsc{Carico} & & 7.69 & 0.99 & 5.00 & 7.00 & 8.00 & 8.00 & 11.00 \\
+    % \hline
+    % \end{tabular}
+    % \caption{PCT of a trace when executing a \texttt{pi-2000} Job
+    % with 1000 Pods under different schedulers.}
+    % \label{tab:cpu-pod-completions}
+% \end{table}
 
-Table \ref{tab:cpu-pod-completions} demonstrates \textsc{Carico} ability to
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=\textwidth]{images/pi-pod-completion.pdf}
+    % \caption{PCT of a trace when executing a \texttt{pi-2000} Job
+    % with 1000 Pods under different schedulers.}
+    \caption{PCT of a trace when executing a \texttt{pi-2000} Job with 1000
+    Pods under different schedulers. The requested resources are given when
+    using \texttt{kube-scheduler}}
+    \label{fig:pi-pod-completion}
+\end{figure}
+
+Figure \ref{fig:pi-pod-completion} demonstrates \textsc{Carico} ability to
 achieve a tight Pod completion distribution with 75\% of Pods completing in less
 than 8 seconds. In contrast, underestimating resource requests with 100
 milliCPU, the distribution of PCT becomes tail-heavy with 50\% of Pods taking
@@ -193,27 +173,36 @@ as Nodes detect the CPU is at capacity once there is always at least one process
 waiting for a CPU core. This therefore limits the number of Pods a Node can take
 and ensures all Pods receive an adequate amount of CPU resources.
 
-\begin{table}[ht!]
-\centering
-    \begin{tabular}{|l|r|c|c|c|c|c|c|c|}
-    \hline
-        \bfseries Scheduler & \bfseries \# Pods & \bfseries Mean & \bfseries Std. &
-        \bfseries Min. & \bfseries 25\% & \bfseries Median & \bfseries 75\% & \bfseries Max. \\
-    \hline
-        \texttt{kube-scheduler} & 100 & 127.38 & 5.29 & 118 & 123.00 & 126.00 & 132.00 &
-        138.00 \\
-        \textsc{Carico} & 100 & 59.02 & 14.62 & 27.00 & 55.00 & 61.00 & 66.00 & 94.00 \\
-        % \texttt{kube-scheduler} & 200 & 225.19 & 36.19 & 45.00 & 231.00 & 236.00 & 239.00 &
-        % 244.00\\
-        % \textsc{Carico} & 200 & 64.46 & 14.33 & 23.00 & 57.75 & 67.00 & 73.25 & 89.00 \\
-    \hline
-    \end{tabular}
-    \caption{PCT of a trace when executing a \texttt{sklearn} Job
-    with 100 Pods under different schedulers.}
-    \label{tab:mem-pod-completions}
-\end{table}
+% \begin{table}[ht!]
+% \centering
+    % \begin{tabular}{|l|r|c|c|c|c|c|c|c|}
+    % \hline
+        % \bfseries Scheduler & \bfseries \# Pods & \bfseries Mean & \bfseries Std. &
+        % \bfseries Min. & \bfseries 25\% & \bfseries Median & \bfseries 75\% & \bfseries Max. \\
+    % \hline
+        % \texttt{kube-scheduler} & 100 & 127.38 & 5.29 & 118 & 123.00 & 126.00 & 132.00 &
+        % 138.00 \\
+        % \textsc{Carico} & 100 & 59.02 & 14.62 & 27.00 & 55.00 & 61.00 & 66.00 & 94.00 \\
+        % % \texttt{kube-scheduler} & 200 & 225.19 & 36.19 & 45.00 & 231.00 & 236.00 & 239.00 &
+        % % 244.00\\
+        % % \textsc{Carico} & 200 & 64.46 & 14.33 & 23.00 & 57.75 & 67.00 & 73.25 & 89.00 \\
+    % \hline
+    % \end{tabular}
+    % \caption{PCT of a trace when executing a \texttt{sklearn} Job
+    % with 100 Pods under different schedulers.}
+    % \label{tab:mem-pod-completions}
+% \end{table}
 
-Table \ref{tab:mem-pod-completions} shows \textsc{Carico} continues to achieve a
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=\textwidth]{images/ml-pod-completion.pdf}
+    \caption{PCT of a trace when executing a \texttt{sklearn} Job with 100
+    Pods under different schedulers. The requested resources are given when
+    using \texttt{kube-scheduler}}
+    \label{fig:ml-pod-completion}
+\end{figure}
+
+Figure \ref{fig:ml-pod-completion} shows \textsc{Carico} continues to achieve a
 lower average PCT when scheduling memory-centric workloads.
 However, when using the lowest overestimate of memory utilisation, 750Mi bytes
 of memory, \texttt{kube-scheduler} achieves tighter PCT distribution.
@@ -352,25 +341,35 @@ heterogeneous workloads.
 % \end{table}
 
 \textbf{Pod Completions}\\
-\begin{table}[ht!]
-\centering
-    \begin{tabular}{|l|c|c|c|c|c|c|c|c|}
-    \hline
-        \bfseries Scheduler & \bfseries Job & \bfseries Mean & \bfseries Std. &
-        \bfseries Min. & \bfseries 25\% & \bfseries Median & \bfseries 75\% & \bfseries Max. \\
-    \hline
-        \texttt{kube-scheduler} & \texttt{pi-2000} & 28.78 & 7.52 & 7.00 & 27.00 & 30.00 & 33.00 & 45.00 \\
-        \texttt{kube-scheduler} & \texttt{sklearn} & 65.25 & 10.53 & 49.00 & 58.25 & 64.00 & 75.25 & 82.00 \\
-        \textsc{Carico} & \texttt{pi-2000} & 7.40 & 1.14 & 5.00 & 7.00 & 7.00 & 8.00 & 11.0 \\
-        \textsc{Carico} & \texttt{sklearn} & 34.50 & 7.39 & 22.00 & 27.50 & 36.00 & 40.25 & 44.00 \\
-    \hline
-    \end{tabular}
-    \caption{PCT of a trace when concurrently executing a 500 Pod \texttt{pi-2000}
-    Job and a 20 Pod \texttt{sklearn} Job.}
-    \label{tab:mixed-pod-completions}
-\end{table}
+% \begin{table}[ht!]
+% \centering
+    % \begin{tabular}{|l|c|c|c|c|c|c|c|c|}
+    % \hline
+        % \bfseries Scheduler & \bfseries Job & \bfseries Mean & \bfseries Std. &
+        % \bfseries Min. & \bfseries 25\% & \bfseries Median & \bfseries 75\% & \bfseries Max. \\
+    % \hline
+        % \texttt{kube-scheduler} & \texttt{pi-2000} & 28.78 & 7.52 & 7.00 & 27.00 & 30.00 & 33.00 & 45.00 \\
+        % \texttt{kube-scheduler} & \texttt{sklearn} & 65.25 & 10.53 & 49.00 & 58.25 & 64.00 & 75.25 & 82.00 \\
+        % \textsc{Carico} & \texttt{pi-2000} & 7.40 & 1.14 & 5.00 & 7.00 & 7.00 & 8.00 & 11.0 \\
+        % \textsc{Carico} & \texttt{sklearn} & 34.50 & 7.39 & 22.00 & 27.50 & 36.00 & 40.25 & 44.00 \\
+    % \hline
+    % \end{tabular}
+    % \caption{PCT of a trace when concurrently executing a 500 Pod \texttt{pi-2000}
+    % Job and a 20 Pod \texttt{sklearn} Job.}
+    % \label{tab:mixed-pod-completions}
+% \end{table}
 
-Table \ref{tab:mixed-pod-completions} demonstrates that \textsc{Carico}
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=\textwidth]{images/mixed-pod-completion.pdf}
+    \caption{PCT of a trace when concurrently executing a 500 Pod
+    \texttt{pi-2000} Job and a 20 Pod \texttt{sklearn} Job. Top:
+    \texttt{pi-2000} Pods requesting 100 milliCPU. Bottom: \texttt{sklearn} Pods
+    requesting 200 milliCPUs and 750 Mi of memory.}
+    \label{fig:mixed-pod-completion}
+\end{figure}
+
+Figure \ref{fig:mixed-pod-completion} demonstrates that \textsc{Carico}
 continues to achieve significantly tighter and lower PCT distributions than
 \texttt{kube-scheduler}; achieves $\approx 7 \times$ lower mean and variance with
 \texttt{pi-2000} PCTs.
