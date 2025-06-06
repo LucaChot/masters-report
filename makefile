@@ -45,6 +45,7 @@ WORDCOUNT_FILE=report
 INTRODUCTION_AUX=chapters/01_introduction
 FIRSTPAGE?=$(shell sed -ne 's/^\\newlabel{firstcontentpage}{{[0-9\.]*}{\([0-9]*\)}.*/\1/p' $(INTRODUCTION_AUX).aux)
 LASTPAGE ?=$(shell sed -ne 's/^\\newlabel{lastcontentpage}{{[0-9\.]*}{\([0-9]*\)}.*/\1/p' $(WORDCOUNT_FILE).aux)
+LASTPAGE := $(shell expr $(LASTPAGE) - 1)
 
 # requires ghostscript
 wordcount: $(WORDCOUNT_FILE).pdf
