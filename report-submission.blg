@@ -17,73 +17,48 @@ Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Database file #1: report.bib
 Warning--I didn't find a database entry for ""
-Warning--I didn't find a database entry for "tirmazi2020borg"
-Warning--I didn't find a database entry for "delimitrou2015tarcil"
-Warning--I didn't find a database entry for "ousterhout2013sparrow"
-Warning--I didn't find a database entry for "boutin2014apollo"
-Warning--I didn't find a database entry for "hindman2011mesos"
-Warning--I didn't find a database entry for "schwarzkopf2013omega"
-Warning--I didn't find a database entry for "khelghatdoust2018peacock"
-Warning--I didn't find a database entry for "zhou2019improving"
-Warning--I didn't find a database entry for "delgado2016job"
-Warning--I didn't find a database entry for "karanasos2015mercury"
-Warning--I didn't find a database entry for "delgado2015hawk"
-Warning--I didn't find a database entry for "wang2019pigeon"
-Warning--I didn't find a database entry for "isard2009quincy"
-Warning--I didn't find a database entry for "ferguson2012jockey"
-Warning--I didn't find a database entry for "delimitrou2014quasar"
-Warning--I didn't find a database entry for "gog2018flexible"
-Warning--I didn't find a database entry for "mogul2015inferring"
-Warning--I didn't find a database entry for "grandl2016altruistic"
-Warning--I didn't find a database entry for "venkataraman2016ernest"
-Warning--I didn't find a database entry for "peng2018optimus"
-Warning--I didn't find a database entry for "kube-constraints"
-Warning--I didn't find a database entry for "mao2019learning"
-Warning--I didn't find a database entry for "cortez2017resource"
-Warning--I didn't find a database entry for "11"
-Warning--I didn't find a database entry for "23"
-Warning--I didn't find a database entry for "67"
-Warning--I didn't find a database entry for "137"
-Warning--I didn't find a database entry for "thesis"
-You've used 35 entries,
+Warning--empty school in gog2018flexible
+Warning--empty publisher in mao2019learning
+Warning--empty journal in welch1995introduction
+You've used 70 entries,
             2616 wiz_defined-function locations,
-            803 strings with 11883 characters,
-and the built_in function-call counts, 12159 in all, are:
-= -- 1226
-> -- 315
-< -- 13
-+ -- 109
-- -- 74
-* -- 482
-:= -- 1400
-add.period$ -- 112
-call.type$ -- 35
-change.case$ -- 33
+            949 strings with 18979 characters,
+and the built_in function-call counts, 26700 in all, are:
+= -- 2635
+> -- 812
+< -- 35
++ -- 275
+- -- 205
+* -- 1125
+:= -- 3142
+add.period$ -- 222
+call.type$ -- 70
+change.case$ -- 67
 chr.to.int$ -- 0
-cite$ -- 35
-duplicate$ -- 426
-empty$ -- 1498
-format.name$ -- 74
-if$ -- 3594
+cite$ -- 73
+duplicate$ -- 982
+empty$ -- 3134
+format.name$ -- 205
+if$ -- 7731
 int.to.chr$ -- 0
-int.to.str$ -- 35
-missing$ -- 23
-newline$ -- 176
-num.names$ -- 25
-pop$ -- 371
+int.to.str$ -- 70
+missing$ -- 53
+newline$ -- 351
+num.names$ -- 56
+pop$ -- 742
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 994
+skip$ -- 2089
 stack$ -- 0
-substring$ -- 461
-swap$ -- 148
-text.length$ -- 19
+substring$ -- 1201
+swap$ -- 385
+text.length$ -- 41
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 0
-while$ -- 73
-width$ -- 37
-write$ -- 370
-(There were 29 warnings)
+warning$ -- 3
+while$ -- 177
+width$ -- 72
+write$ -- 746
+(There were 4 warnings)

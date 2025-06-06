@@ -57,60 +57,6 @@ and \texttt{kube-scheduler} (resource description-based scheduler), I use a
 range of resource requests with \texttt{kube-scheduler} to highlight how much
 the performance can vary with different resource request.
 
-\section{Evaluation Setup}
-These experiments ran on a Kubernetes cluster containing 20 virtual machines
-(VMs) running on the Xen hypervisor. One of the machines is used as the master
-Node, and the rest are worker Nodes. The master Node contains all the Pods in
-the control plane, and during the evaluation of \textsc{Carico}, it contains the \textsc{Carico}
-Scheduler and Aggregation Server. Each VM advertises four Intel Xeon Gold 6142
-CPUs \@ 2.60GHz with 8 GB of RAM running Ubuntu 24.04.2 LTS. Each CPU has a
-single core with hyper-threading disabled. When running \texttt{kubectl describe
-nodes}, each Node advertises $4000$ milliCPU seconds and 8GB of RAM.
-
-During the evaluation, I use a Prometheus deployment \cite{} to collect various
-statistics, such as running Pod count, resource utilisation and Kubernetes
-object completions.
-
-%
-% For any practical projects, you should almost certainly have some kind
-% of evaluation, and it's often useful to separate this out into its own
-% chapter.
-
-\section{Experimental Workloads}
-During the experiments I used very short-lived workloads; workloads that take
-less than a minute to complete. While data canters can expect to receive
-longer-running workloads, using them in the evaluation was not feasible due to
-the need to run experiments multiple times and limited time. Short-lived tasks
-can still provide valuable insights into the performance of a scheduler as their
-short completion time makes the impact of poor scheduling decisions more
-significant and easier to observe.
-
-During this evaluation, I used two types of workloads:
-\begin{enumerate}
-    \item \texttt{pi-2000}: A short-lived CPU-focused workload where a Pod
-        computes the value of $\pi$ to 2000 decimal points.
-    \item \texttt{sklearn}: A longer-running workload with a larger memory
-        footprint. This Pod executes a script which uses
-        \texttt{sklearn} which trains a small neural network classifier ($512$
-        features, $16$ classes, $8$ hidden layers each containing $1024$
-        neurons) on 5000 randomly generated samples before running inference on
-        another set of 5000 randomly generated samples.
-\end{enumerate}
-Investigating metrics when running \texttt{pi-2000} and \texttt{sklearn} Jobs
-separately demonstrates how \textsc{Carico} handles opposing resource usage
-characteristics (CPU-focused vs memory-focused). Furthermore, when executing
-both these Jobs concurrently, the difference in runtime helps investigate how
-\textsc{Carico} also handles workloads with different running times.
-
-% In this experiment, I use a Job that specifies Pods that performed a small ML
-% workload. This workload uses a significant amount of memory, which unlike CPU,
-% must be carefully handled. If we increase the number of processes on a
-% fully-utilised CPU, it only results in each process having a smaller portion of
-% CPU time and degrading its performance. On the other hand, memory is less
-% forgiving as once memory runs out, the kernel begins OOM killing processes. This
-% be detrimental to Job Completion, as terminated Pods results in wasted
-% computations.
-%
 
 \section{Job Completion}
 \label{sec:eval-job-completion}

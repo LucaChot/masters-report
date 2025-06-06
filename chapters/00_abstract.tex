@@ -1,43 +1,46 @@
 \chapter*{Abstract}
 
-Kubernetes is a widely-used open-source container orchestration system
-that automates the deployment, scaling and management of containerized
-applications. Efficient scheduling is a critical component of Kubernetes,
-dictating an optimal allocation of pods across nodes to maximise a set of goals.
-Kubernetes schedulers generally fall into two categories: pod-descriptive and
-telemetric-based. Pod-descriptive schedulers, like the default
-\texttt{kube-scheduler}, rely on accurately defined Pod resource requests for
-optimal performance. In contrast, telemetric-based schedulers leverage collected
-Node metrics to identify under or over-utilized Nodes. While these are often
-used to refine decisions made by existing pod-descriptive schedulers, this
-dissertation focuses on exploring the potential of a telemetric-only scheduler.
+Datacenters serve as the foundational infrastructure for modern computing.
+However, workloads' escalating demands for resources have necessitated for ever
+larger and more complex datacenters. Datacenter schedulers must allocate these
+diverse resources across an increasing volume of dynamic workloads to achieve
+set performance objects, with any small variations incurring considerable
+operational costs. This has incentivised research into this field, with numerous
+architectures and algorithms having been proposed. \textsc{Pronto} was proposed
+to tackle the existing trade-off when predicting the availability of node
+resources: responsiveness vs. a more holistic view of the entire datacenter.
+\textsc{Pronto} exploits federated learning (FL) techniques to distribute
+knowledge aggregation and processing across all the compute nodes in a
+datacenter in an online and memory-limited manner. \textsc{Pronto} showed that
+nodes with a global model of the datacenter could more accurately predict the
+availability of their resources.
 
-Scheduling in Kubernetes without explicit Pod resource requests remains largely
-unexplored due to its complexity. Traditional bin-packing approaches are
-insufficient; instead, a telemetric-only scheduler requires a novel strategy to
-derive optimal plans from collected telemetry.
+With the wide-spread adoption of containerized workloads in datacenters,
+Kubernetes, an open-source container orchestration system, has established
+itself as cornerstone of the cloud-native industry. Consequently, efficient
+scheduling is paramount. The Kubernetes default scheduler
+(\texttt{kube-scheduler}) relies on accurate user-provided container resource
+requests. To improve the quality of resource requests, telemetric-based
+schedulers have been proposed, but either use expensive machine learning
+techniques or focus on a per-Node level.
 
-\textsc{Pronto} offers a promising direction. This federated, asynchronous, and
-memory-limited algorithm schedules tasks across hundreds of workers. It enables
-individual workers to build local workload models from telemetry, which are then
-aggregated to form a global system view. For a telemetric-only scheduler,
-maximizing information aggregation is crucial. However, in very large clusters,
-centralizing all this data quickly becomes a bottleneck. By distributing the
-knowledge federation workload across the cluster, we can significantly reduce
-the load on a central scheduler.
-
-Unfortunately, \textsc{Pronto}'s direct application to Kubernetes proved unfeasible due
-to its communication latency assumptions and early empirical findings.
-Consequently, I propose \textsc{Carico} (Italian for "load"), a novel scheduler that
-shares \textsc{Pronto}'s core properties but accounts for communication latency. \textsc{Carico}
-enables Nodes to perform Federated Singular Value Decomposition (FSVD) on
-capacity-based metrics, modeling past resource usage to estimate future
-workload capacity.
+\textsc{Pronto} ability to efficiently aggregate telemetry across a datacenter
+in an online fashion offers a promising direction. However, \textsc{Pronto}'s
+no communication latency assumption, its binary signal, and Kubernetes' noisy
+environment make its algorithm difficult to apply to a Kubernetes setting.
+Consequently, I propose \textsc{Carico} (Italian for "load"), a novel federated,
+asynchronous and memory-limited scheduler that shares \textsc{Pronto}'s core
+properties but accounts for communication latency. Nodes perform Federated
+Singular Value Decomposition (FSVD) on capacity-based metrics, modeling past
+resource usage across the datacenter to estimate future workload capacity. This
+capacity is advertised as a continuous comparable signal which can be reserved
+to account for Pod start-up delay.
 
 To evaluate \textsc{Carico}, I implemented a prototype within the Kubernetes ecosystem.
 This involved extensive investigation into various metrics and filters to
-generate a precise capacity signal. Finally, I benchmarked \textsc{Carico}'s overall
-performance against the default kube-scheduler on a Kubernetes cluster with
-diverse workloads. While \textsc{Carico} achieved comparable throughput, it significantly
-outperformed kube-scheduler as a QoS scheduler, demonstrating lower Pod
-Completion times and improved workload isolation.
+generate an accurate model of recent workloads and a Node's corresponding
+capacity signal. Finally, I benchmarked \textsc{Carico}'s overall performance
+against the \texttt{kube-scheduler} on a Kubernetes cluster with diverse
+workloads. While \textsc{Carico} achieved comparable Job Completion times, it
+significantly outperformed \texttt{kube-scheduler} as a QoS scheduler,
+demonstrating lower Pod Completion times and improved workload isolation.

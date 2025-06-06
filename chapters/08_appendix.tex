@@ -1,6 +1,7 @@
 \chapter{Required Lemmas for Model Interpretation}
 
-\section{Proof: The First Left Singular Vector as a Pseudo Weighted Average}
+\section{Proof: The First Left Singular Vector of Non-Negative Matrices as a
+Pseudo Weighted Average}
 \label{app:vector-to-avg}
 Let $\mathbf{A}$ be an $m \times n$ matrix with non-negative elements $0 \leq
 a_{ij} \leq 1$. Let $u_1$ be the first left singular vector and $\sigma_1$ the
@@ -116,7 +117,7 @@ Since $0 \leq a_{ij} \leq b_{ij}$ for all $i,j$:
 \label{sec:mono-three}
 A standard result from Perron-Frobenius theory states that if $\mathbf{X}$ and
 $\mathbf{Y}$ are non-negative matrices such that $\mathbf{X} \leq \mathbf{Y}$
-element-wise, then their spectral radii satisfy $\rho(\mathbf{X}) \leq
+element-wise ($\forall i,j. x_{ij} \leq y_{ij}$), then their spectral radii satisfy $\rho(\mathbf{X}) \leq
 \rho(\mathbf{Y})$. Applying this result to $\mathbf{M}_{\mathbf{A}} =
 \mathbf{A}^T\mathbf{A}$ and $\mathbf{M}_{\mathbf{B}} =
 \mathbf{B}^T\mathbf{B}$:
@@ -133,7 +134,8 @@ increased (while remaining non-negative, e.g., elements between $0$ and $1$),
 the first singular value of the resulting matrix $\mathbf{B}$ wil greater than
 or equal to that of $\mathbf{A}$.
 
-\section{Proof: Singular Value of Concatenated Matrix}
+\section{Proof: First Singular Value Behaviour in Non-Negative Concatenated
+Matrices}
 \label{sec:app-concatenate}
 This section proves the following statement:\\
 Given two non-negative matrices $\mathbf{A} \in \mathbb{R}^{m \times n_1}$ and
@@ -209,7 +211,8 @@ greater than or equal to the maximum of these two values:
 \[ \sigma_1([\mathbf{A}, \mathbf{B}]) \geq \max(\sigma_1(\mathbf{A}),
 \sigma_1(\mathbf{B})) \]
 
-\section{$\sigma_1$ of Scaled Concatenation}
+\section{Damped Merging: First Singular Value Behaviour with Non-Negative
+Weighted Concatenated Matrices}
 \label{sec:app-scale}
 This section proves the following statement:
 Given two non-negative matrices $\mathbf{A} \in \mathbb{R}^{m \times n_1}$ and
@@ -222,7 +225,7 @@ singular vector of the concatenated matrix $\mathbf{C} = [\gamma_{\mathbf{A}}\ma
 \[ \min(P_{\mathbf{A}}(u_{\mathbf{C}}),P_{\mathbf{\mathbf{B}}}(u_{\mathbf{C}})) \leq \sigma_{\mathbf{C}}^2 \leq
 \max(P_{\mathbf{A}}(u_{\mathbf{C}}),P_{\mathbf{\mathbf{B}}}(u_{\mathbf{C}})) \]
 where $\sigma_{\mathbf{C}}$ and $u_{\mathbf{C}}$ correspond to the first singular value and first
-left singular vector of $\mathbf{C}$, $P_{\mathbf{M}}(u)$ is the sum of squared scalar porjections
+left singular vector of $\mathbf{C}$, $P_{\mathbf{M}}(u)$ is the sum of squared scalar projections
 of the columns in $\mathbf{M}$ onto $u$ (let $m_j$ be the $j$-th column of $\mathbf{M}$ $P_{\mathbf{M}}(u)
 = \sum_{j=1}^n (u^T m_j)^2$).
 
@@ -277,3 +280,63 @@ If $x \leq y$:
 A similar argument holds if $y \leq x$. Therefore:
 \[ \min(P_{\mathbf{A}}(u_{\mathbf{\mathbf{C}}}),P_{\mathbf{\mathbf{B}}}(u_{\mathbf{\mathbf{C}}})) \leq \sigma_{\mathbf{\mathbf{C}}}^2 \leq
 \max(P_{\mathbf{A}}(u_{\mathbf{\mathbf{C}}}),P_{\mathbf{\mathbf{B}}}(u_{\mathbf{\mathbf{C}}})) \]
+
+\chapter{Evaluation Setup}
+
+\section{Cluster Setup}
+
+These experiments ran on a Kubernetes cluster containing 20 virtual machines
+(VMs) running on the Xen hypervisor. One of the machines is used as the master
+Node, and the rest are worker Nodes. The master Node contains all the Pods in
+the control plane, and during the evaluation of \textsc{Carico}, it contains the \textsc{Carico}
+Scheduler and Aggregation Server. Each VM advertises four Intel Xeon Gold 6142
+CPUs \@ 2.60GHz with 8 GB of RAM running Ubuntu 24.04.2 LTS. Each CPU has a
+single core with hyper-threading disabled. When running \texttt{kubectl describe
+nodes}, each Node advertises $4000$ milliCPU seconds and 8GB of RAM.
+
+During the evaluation, I use a Prometheus deployment \cite{} to collect various
+statistics, such as running Pod count, resource utilisation and Kubernetes
+object completions.
+
+%
+% For any practical projects, you should almost certainly have some kind
+% of evaluation, and it's often useful to separate this out into its own
+% chapter.
+
+\section{Experimental Workloads}
+During the experiments I used very short-lived workloads; workloads that take
+less than a minute to complete. While data canters can expect to receive
+longer-running workloads, using them in the evaluation was not feasible due to
+the need to run experiments multiple times and limited time. Short-lived tasks
+can still provide valuable insights into the performance of a scheduler as their
+short completion time makes the impact of poor scheduling decisions more
+significant and easier to observe.
+
+During this evaluation, I used two types of workloads:
+\begin{enumerate}
+    \item \texttt{pi-2000}: A short-lived CPU-focused workload where a Pod
+        computes the value of $\pi$ to 2000 decimal points.
+    \item \texttt{sklearn}: A longer-running workload with a larger memory
+        footprint. This Pod executes a script which uses
+        \texttt{sklearn} which trains a small neural network classifier ($512$
+        features, $16$ classes, $8$ hidden layers each containing $1024$
+        neurons) on 5000 randomly generated samples before running inference on
+        another set of 5000 randomly generated samples.
+\end{enumerate}
+Investigating metrics when running \texttt{pi-2000} and \texttt{sklearn} Jobs
+separately demonstrates how \textsc{Carico} handles opposing resource usage
+characteristics (CPU-focused vs memory-focused). Furthermore, when executing
+both these Jobs concurrently, the difference in runtime helps investigate how
+\textsc{Carico} also handles workloads with different running times.
+
+% In this experiment, I use a Job that specifies Pods that performed a small ML
+% workload. This workload uses a significant amount of memory, which unlike CPU,
+% must be carefully handled. If we increase the number of processes on a
+% fully-utilised CPU, it only results in each process having a smaller portion of
+% CPU time and degrading its performance. On the other hand, memory is less
+% forgiving as once memory runs out, the kernel begins OOM killing processes. This
+% be detrimental to Job Completion, as terminated Pods results in wasted
+% computations.
+%
+
+

@@ -48,9 +48,14 @@ LASTPAGE ?=$(shell sed -ne 's/^\\newlabel{lastcontentpage}{{[0-9\.]*}{\([0-9]*\)
 LASTPAGE := $(shell expr $(LASTPAGE) - 1)
 
 # requires ghostscript
+# wordcount: $(WORDCOUNT_FILE).pdf
+	# gs -q -dSAFER -sDEVICE=txtwrite -o - \
+	   # -dFirstPage=$(FIRSTPAGE) -dLastPage=$(LASTPAGE) $< | \
+	# egrep '[A-Za-z]{3}' | wc -w
+
 wordcount: $(WORDCOUNT_FILE).pdf
 	gs -q -dSAFER -sDEVICE=txtwrite -o - \
-	   -dFirstPage=$(FIRSTPAGE) -dLastPage=$(LASTPAGE) $< | \
+	   -dFirstPage=10 -dLastPage=59 $< | \
 	egrep '[A-Za-z]{3}' | wc -w
 
 clean:
