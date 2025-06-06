@@ -5,7 +5,7 @@ Kubernetes scheduler, comparing it against the default industry-standard
 \texttt{kube-schedulers}. I was unable to compare \textsc{Carico} against any
 similar telemetric-only schedulers due to their limited number and time
 constraints. For the evaluation, I use a set of common scheduling objectives
-used by data canter providers~\cite{thesis}:
+used by data canter providers~\cite{vijayakumar2024scheduling}:
 
 \textbf{Job Completion - Section \ref{sec:eval-job-completion}:}\\
 Schedulers often aim to reduce the time it takes for a job or a set of jobs to
@@ -521,10 +521,10 @@ Filters.
         1000 & 2.27  $\pm$ 0.66 \\
     \hline
     \end{tabular}
-    \label{tab:overhead}
     \caption{The \% difference in JCT when executing 1000 a \texttt{pi-2000}
     Pod Job with and without \textsc{Carico} Pods. Pods are scheduled by
     \texttt{kube-scheduler} and request 100 milliCPU.}
+    \label{tab:overhead}
 \end{table}
 
 Table \ref{tab:overhead} presents the relative change in JCT defined as:

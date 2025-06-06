@@ -30,7 +30,7 @@ as \textsc{Carico} - "load" in Italian.
 \section{Capacity Signal}
 In Section \ref{sec:intro-weakness}, we identified critical limitations of
 \textsc{Pronto}'s binary ``Reject-Job" signal within the Kubernetes ecosystem:
-its lack of comparable Node scoring and inability to handle Pod startup
+its lack of comparable Node scoring and inability to handle Pod start-up
 latencies. While one could conceivably compare the number of detected spikes,
 it's difficult to quantitatively assign or reserve ``peak detections" for
 incoming Pods. Furthermore, as shown in Figure
@@ -121,7 +121,7 @@ earlier interpretations:
         [\gamma_{\mathbf{A}}\mathbf{A},
         \gamma_{\mathbf{\mathbf{B}}}\mathbf{\mathbf{B}}]$ still behaves as a
         pseudo-weighted average, but with the contributions of the input telemetry
-        further weighted according to the scalar weights. Futhermore, the
+        further weighted according to the scalar weights. Furthermore, the
         weights can be used as a forget factor similar to $\gamma$ in
         \textsc{Pronto}.
     \item \textbf{First Singular Value:}\\
@@ -262,12 +262,12 @@ each Pending Pod, the scheduler performs the following operations:
 \section{Properties}
 \textsc{Pronto} is designed to be \textit{federated, streaming} and
 \textit{unsupervised}. \textsc{Carico} exhibits identical properties while also
-considering the existance of communication and Pod startup latency.
+considering the existence of communication and Pod start-up latency.
 
 \textbf{Federated:}
 While \textsc{Carico} uses a central scheduler to score Nodes and perform the final
 Bind operation, it can still be considered federated because of its use
-of FSVD \cite{}: individual Nodes have a unified view of the global workload
+of FSVD: individual Nodes have a unified view of the global workload
 while maintaining their individual autonomy to set their own score.
 
 \textbf{Streaming:} Like \textsc{Pronto}, \textsc{Carico} only requires a single
@@ -327,7 +327,7 @@ landscape of Kubernetes schedulers.
 decentralised fashion. Each computing node makes independent decisions for task
 assignments without needing global synchronisation. Custom Kubernetes schedulers
 have been designed to extend the Kubernetes architectures with modular,
-two-level, or distributed architectures \cite{11, 23,67,137}. However, the new
+two-level, or distributed architectures \cite{beltre2019kubesphere, casquero2019distributed, luong2019multi, zhang2019multi}. However, the new
 federated scheduler returns to a centralised architecture, mirroring the default
 Kubernetes scheduler (\texttt{kube-scheduler}) with a single dispatcher on the
 master node and has access to a global view of the Nodes.

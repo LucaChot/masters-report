@@ -23,34 +23,36 @@ a review of related Kubernetes schedulers to help position this dissertation's
 work within the current state of the art.
 
 \section{Datacenter Scheduling}
+\label{sec:background-datacenters}
+
 Modern datacenters are physical facilities that serve as the backbone for
 running diverse user applications and data-parallel computations. The increasing
 demand for computing resources like compute, memory, storage and network has
 culminated in hyperscale datacenters that house hundreds of
-thousands of machines \cite{27, 107}. Datacenter scheduling is the fundamental
+thousands of machines \cite{curino2019hydra, tirmazi2020borg}. Datacenter scheduling is the fundamental
 task of allocating the available resources to workloads such that their
 performance objectives are satisfied and the overall datacenter utilisation is
 kept high. Small deviations from the desired objectives can have substantial
-detrimental effects with millions of dallars in revenue potentially lost
-\cite{pronto}. This problem continues to grow in difficulty, with the
+detrimental effects with millions of dollars in revenue potentially lost
+\cite{barroso2019datacenter}. This problem continues to grow in difficulty, with the
 appearance of ever-increasing input workload rate and ever-changing workload
-characteristics onto heterogeneous resources \cite{36, 115}. Moreover, they are
+characteristics onto heterogeneous resources \cite{delimitrou2015tarcil, verma2015large}. Moreover, they are
 expected to schedule for short user response time and high resource utilisation
-while also delivering high scheduling throughput~\cite{27,36,90,107,115}.
+while also delivering high scheduling throughput~\cite{curino2019hydra,delimitrou2015tarcil,ousterhout2013sparrow,tirmazi2020borg,verma2015large}.
 
 Multiple scheduler architectures have been proposed to tackle different
 settings:
 \begin{itemize}
     \item \textbf{Centralised Schedulers:} Centralised schedulers like
-        Borg~\cite{}, Firmament~\cite{}, Kubernetes~\cite{}, and Quincy~\cite{}
+        Borg~\cite{verma2015large}, Firmament~\cite{gog_firmament_2016}, Kubernetes~\cite{ungureanu2019kubernetes}, and Quincy~\cite{isard2009quincy}
         consist of a single monolithic scheduler that executes the entire
-        scheduling logic to place tasks on available resources~\cite{}. This
+        scheduling logic to place tasks on available resources~\cite{schwarzkopf2016evolution}. This
         design allows for more sophisticated policies to be applied. To overcome the
         issue of a single point of failure (SOPF), centralised scheduelers are
-        often configured in a highly available topology~\cite{14, 109, 115},
+        often configured in a highly available topology~\cite{boutin2014apollo, ungureanu2019kubernetes, verma2015large},
         where in the case of a failure, a leader election round is triggered.
 
-        Two-tiered scedulers~\cite{60}are a variant of central schedulers where
+        Two-tiered schedulers~\cite{hindman2011mesos}are a variant of central schedulers where
         one entity (master) manages resources of the datacenter and their
         allocation, and the other carries out task placement. This delegates
         resource allocation to schedulers with domain-specific knowledge, while
@@ -59,67 +61,69 @@ settings:
         centralised schedulers become bottlenecks, facing increased overheads
         collecting resource information, while simultaneously handling high
         frequency job arrivals. To overcome this limitation, decentralised
-        schedulers like Apollo~\cite{} and Omega~\cite{} employ several
-        independent job schedulers which update a shared centralised state after
-        each placement decision. Due to its concurrent nature, commits can
-        result in conflicts~\cite{101} which must be handled carefully.
+        schedulers like Apollo~\cite{boutin2014apollo} and
+        Omega~\cite{schwarzkopf2013omega} employ several independent job
+        schedulers which update a shared centralised state after each placement
+        decision. Due to its concurrent nature, commits can result in
+        conflicts~\cite{schwarzkopf2013omega} which must be handled carefully.
     \item \textbf{Distributed Schedulers:} Like decentralised schedulers,
-        distributed schedulers have multiple indpendent scheduler instances.
+        distributed schedulers have multiple independent scheduler instances.
         However, they require no coordination or shared state. Schedulers like
-        Peacock~\cite{73} and Sparrow~\cite{90} aim to make scheduling decisions
+        Peacock~\cite{khelghatdoust2018peacock} and Sparrow~\cite{ousterhout2013sparrow} aim to make scheduling decisions
         as fast as possible, without the knowledge of the entire datacenter.
         Although these schedulers are scalable and available owning to their
         distributed nature, having a limited view of the datacenter can result
         in sub-optimal placement choices.
-    \item \textbf{Hybrid Schedulers:} Hybrid schedulers like Dice~\cite{130},
-        Eagle~\cite{31}, Hydra~\cite{44} and Mercury~\cite{71} combine the
+    \item \textbf{Hybrid Schedulers:} Hybrid schedulers like Dice~\cite{zhou2019improving},
+        Eagle~\cite{delgado2016job}, Hydra~\cite{curino2019hydra} and Mercury~\cite{karanasos2015mercury} combine the
         properties of centralised and distributed schedulers to achieve good
         placement at scale and for high workload arrival rates. They typically
         employ separate schedulers, each given different scheduling policies and
         tasked with placing a different kind of job into specially reserved
-        sub-clusters~\cite{31,33,71,123}. Due to the requirement for
+        sub-clusters~\cite{delgado2016job,delgado2015hawk,karanasos2015mercury,wang2019pigeon}. Due to the requirement for
         workload-specific parameters, sub-clusters may become under- or
-        over-utilised when workload characteristics change~\cite{46}.
+        over-utilised when workload characteristics change~\cite{gog_firmament_2016}.
 \end{itemize}
 
 Much resarch has also gone into developing different algorithms for
 scheduling.\\
 \textbf{Multi-dimensional resource allocation} transforms scheduling into a
-bin-packing problem. Schedulers like Quincy~\cite{126} and Jockey~\cite{136}
+bin-packing problem. Schedulers like Quincy~\cite{isard2009quincy} and Jockey~\cite{ferguson2012jockey}
 allocate a uniform amount of resources to all tasks regardless of their needs,
-potentially hurting application performance. Other schedulers~\cite{56, 138,
-134,149} support user-specified job resource requirements, but risk users
-overestimating~\cite{123} or not knowing howing much to request~\cite{4}.
+potentially hurting application performance. Other schedulers~\cite{verma2015large, delimitrou2014quasar,
+hindman2011mesos} support user-specified job resource requirements, but risk users
+overestimating~\cite{gog2018flexible} or not knowing how much to request~\cite{mogul2015inferring}.
 Several methods have been proposed to improve the accuracy of job resource
-requests. These range from profiling the job before actual execution~\cite{138}
+requests. These range from profiling the job before actual execution~\cite{delimitrou2014quasar}
 , decreasing or redistributing the initial resource allocation after an
-observation period~\cite{56,140}, and analysing historical traces of jobs to
+observation period~\cite{verma2015large,grandl2016altruistic}, and analysing historical traces of jobs to
 build a performance model of the expected performance based on the job resource
-allocation~\cite{142, 143, 144}.
+    allocation~\cite{ferguson2012jockey, venkataraman2016ernest, peng2018optimus}.
 
-\textbf{Constraint handling} schedulers~\cite{} allows tasks to have placement
-constraints, such as, requiring specialist hardware like a Tensor Processing
-Units~\cite{146}(TPUs). Kubernetes~\cite{} supports both hard (mandatory) and
-soft (not mandatory but preffered) constraints, as well as
-affinity/anti-affinity constraints.
+\textbf{Constraint handling} schedulers allows tasks to have placement
+constraints, such as, requiring specialist hardware. Kubernetes~\cite{kube-constraints}
+supports both hard (mandatory) and soft (not mandatory but preferred)
+constraints, as well as affinity/anti-affinity constraints.
 
 % Is this enough, should I also talk about task interference, data locality, and
 % low placement latency
 
-Finally, schedulers like \cite{Boutin-et-al.,-2014;-Karanasos-et-al.,-2015;-Verma-et-al.,-2015;-Gog-et-al.,-2016;-Mao-et-al.,-2019;-Ousterhout-et-al.,-2013b}
+Finally, schedulers like \cite{boutin2014apollo, karanasos2015mercury, verma2015large,
+gog_firmament_2016, mao2019learning, ousterhout2013sparrow}
 rely on \textbf{predictions of node's future resource
 availablilty} to avoid saturation and efficently utilise resources across data
 center nodes. Approaches range from probing available nodes on an on-demand
-basis~\cite{Ousterhout-et-al.,-2013b;-Verma-et-al.,-2015} to collectively
+basis~\cite{ousterhout2013sparrow,verma2015large} to collectively
 generated telemetry across the datacenter and using offline machine learning
-prediction to tackle oversubscription~\cite{Cortez-et-al.,-2017}. While it has
-been shown that schedulers generate improved holistic models for efficient
-provision when given access to performance data from all data center
-nodes~\cite{Verma-et-al.,-2015;-Gog-et-al.,-2016;-Boutin-et-al.,-2014;-Mao-et-al.,-2019;-Cortez-et-al.,-2017}, they typically operate on a near offline
+prediction to tackle over-subscription~\cite{cortez2017resource}. While it has
+been shown that schedulers can generate improved holistic models for efficient
+provision when given access to performance data from all datacenter
+nodes~\cite{verma2015large, gog_firmament_2016, boutin2014apollo,
+mao2019learning, cortez2017resource}, they typically operate on a near offline
 fashion with a high network cost, making them slow to react in real-time to
 performance problems. \textsc{Pronto}~\cite{grammenos_pronto_2021} pioneers
-a federated approach to analysing real-time telemetry from virtualised data
-center nodes for online task scheduling.
+a federated approach to analysing real-time telemetry from virtualised
+datacenter nodes for online task scheduling.
 
 \section{Kubernetes}
 
@@ -153,12 +157,12 @@ control plane uses the workload's specification to manage Pod objects on your
 behalf. This dissertation will use the following:
 \begin{itemize}
     \item \textbf{Deployment:} manages a set of Pods to run an application
-        workload and typically doesn't maintain state~\cite{}.
+        workload and typically doesn't maintain state~\cite{kube_deployments}.
     \item \textbf{DaemonSet:} ensures that all (or some) Nodes run a copy of a
-        Pod to provide Node-local facilities~\cite{}.
+        Pod to provide Node-local facilities~\cite{kube_daemonset}.
     \item \textbf{Job:} creates one or more Pods and will continue to retry
         execution of the Pods until a specified number of them successfully
-        terminate~\cite{}.
+        terminate~\cite{kube_jobs}.
 \end{itemize}
 
 Almost every Kubernetes object includes two fields: \verb|spec| and
@@ -168,7 +172,7 @@ influence scheduling decisions. Containers also contain a \verb|spec| field
 which specifies \verb|request| and \verb|limits|. The \texttt{request} field
 behaves as a set of minimum requirements and is used when scheduling Pods. In
 contrast, the \texttt{limits} field is used by kernel of the Node to throttle a
-container's resource usage. In Kuberentes, the resource units for
+container's resource usage. In Kubernetes, the resource units for
 \texttt{resource} and \texttt{limits} are the following:
 \begin{itemize}
     \item \textbf{CPU:} The metric used is \textit{cpu} units, where 1 cpu unit
@@ -236,7 +240,7 @@ $\mathbf{U}$ and $\mathbf{V}$ is an eigenvector of $\mathbf{AA}^T$ and
 $\mathbf{A}^T\mathbf{A}$.
 
 \subsection{Principal Component Analysis}
-Principal Component Analysis~\cite{} is a staple of linear
+Principal Component Analysis~\cite{pearson1901liii} is a staple of linear
 dimensionality-reduction techniques. The standard PCA procedure takes as input a
 matrix $\mathbf{B}$ representing $n$ columns of data with $m$ dimensions and
 mean-centers it: $\mathbf{A}_{ij} = (\mathbf{B}_{ij} - \mu_i)$ where $\mu_i$ is
@@ -271,7 +275,7 @@ reducing the required computations and memory.
 \subsection{Incremental-SVD}
 Incremental-SVD allows \textsc{Pronto} to become a streaming algorithm with limited
 memory. It takes a stream of chunks $\mathbf{Y}_i$, such that  $[\mathbf{Y}_1,
-\ldots, \mathbf{Y}_l] = \mathbf{Y}$, and with each recieved chunk it performs
+\ldots, \mathbf{Y}_l] = \mathbf{Y}$, and with each received chunk it performs
 Subspace-Merge to produce $\mathbf{U}_l, \Sigma_l$ where $\mathbf{Y} =
 \mathbf{U}_l\Sigma_l\mathbf{V}_l^T$
 
@@ -303,7 +307,8 @@ running Subspace-Merge on the subspaces produced by incremental-SVD. Finally,
 \textsc{Pronto} also introduces a forgetting factor $\gamma$ in front of
 $\mathbf{U}_i\Sigma_i$ in Incremental-SVD that allows it to ``forget" old data
 by gradually reducing the influence of previous subspaces. Like with standard
-PCA, FPCA can be considered as FSVD on mean-centered data.
+PCA, FPCA can be considered as Federated SVD~\cite{grammenos2020federated} on
+mean-centered data.
 
 \subsection{Low-Rank Approximations}
 It can be shown that using the first $r$ eignenvectors in the above algorithms
@@ -559,7 +564,7 @@ The PSI metrics also expose an average over a 10-second window. Figure
 reduce the impact of these container runtime-induced spikes. However, this
 smoothing comes at the cost of responsiveness. In the experiments running 10
 Pods, the averaged metrics failed to converge on the true value observed in
-Figure \ref{fig:pressure} before the Pods had finished running. This delay could
+Figure \ref{fig:pressure-avg} before the Pods had finished running. This delay could
 still result in the same ``runaway train" situation described earlier.
 
 Based on this early empirical investigation, I conclude that peak-prediction on

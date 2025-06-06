@@ -39,7 +39,7 @@ memory, storage, and network resources necessitates increasingly large and
 complex datacenters. Datacenter scheduling is a critical task: it involves
 allocating available resources to workloads to ensure performance objectives
 are met with any small deviations resulting in potential revenue losses of
-millions of dollars~\cite{}. The difficulty of this problem is compounded by
+millions of dollars~\cite{barroso2019datacenter}. The difficulty of this problem is compounded by
 ever-increasing input workload rates, dynamically changing workload
 characteristics, and the heterogeneity of resources. Schedulers are expected to
 deliver short user response times, high resource utilization, and high
@@ -48,14 +48,15 @@ aspects of datacenter operation.
 
 Numerous approaches have been explored to tackle task scheduling at a
 datacenter-level. Multi-dimensional resource allocation attempt to reduce
-scheduling to a bin packing problem, with many schedulers~\cite{borg, kube}
+scheduling to a bin packing problem, with many schedulers~\cite{verma2015large,
+ungureanu2019kubernetes}
 exploiting user-provided job resource requests to influence allocations.
 However, the problem of inaccurate resource estimation has necessitated complex
-techniques to better estimate resource requirements~\cite{}. Another approach
+techniques to better estimate resource requirements~\cite{delimitrou2014quasar, grandl2016altruistic, venkataraman2016ernest}. Another approach
 has schedulers predict the availability of node resources. These schedulers
 initially consisted of those that probed a portion of the datacenter
-on-demand~\cite{}, and those that performed offline machine learning on
-telemetry from the entire datacenter~\cite{}. While existing schedulers had to
+on-demand~\cite{ousterhout2013sparrow}, and those that performed offline machine learning on
+telemetry from the entire datacenter~\cite{cortez2017resource}. While existing schedulers had to
 trade responsiveness for a holistic model of the datacenter, \textsc{Pronto} was
 proposed to achieve both. \textsc{Pronto} is a novel federated, asynchronous,
 and memory-limited algorithm that exploits federated learning (FL) techniques to

@@ -360,7 +360,7 @@ container churn.
 
 \subsubsection{Estimating Pod-Cost}
 \label{sec:estimating-cost}
-A Kalman filter \cite{} is a powerful lightweight streaming algorithm used for
+A Kalman filter \cite{welch1995introduction} is a powerful lightweight streaming algorithm used for
 estimating the true state of a dynamic from a series of noisy and uncertain
 measurements. It's widely applied in fields like navigation (GPS), robotics,
 signal processing and control systems. Its ability to estimate a system's state
@@ -412,7 +412,7 @@ final approach was used in the \textsc{Carico} Pod implementation.
 \section{Aggregation Server}
 The purpose of the Aggregation Server is to perform Subspace-Merge on incoming
 local subspaces and return the global aggregated subspace. \textsc{Pronto}'s
-approach resembles the distributed agglomerative summary model (DASM) \cite{}.
+approach resembles the distributed agglomerative summary model (DASM) \cite{tanenbaum2002distributed}.
 Subspaces are aggregated in a "bottom-up" approach following a tree-structure
 depicted in Figure \ref{pronto-agg}. While this approach reportedly requires
 minimal synchonisation, it demands multiple dedicated Pods, and Kubernetes'

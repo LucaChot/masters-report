@@ -17,98 +17,48 @@ Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Database file #1: report.bib
 Warning--I didn't find a database entry for ""
-Warning--I didn't find a database entry for "borg"
-Warning--I didn't find a database entry for "kube"
-Warning--I didn't find a database entry for "27"
-Warning--I didn't find a database entry for "107"
-Warning--I didn't find a database entry for "pronto"
-Warning--I didn't find a database entry for "36"
-Warning--I didn't find a database entry for "115"
-Warning--I didn't find a database entry for "90"
-Warning--I didn't find a database entry for "14"
-Warning--I didn't find a database entry for "109"
-Warning--I didn't find a database entry for "60"
-Warning--I didn't find a database entry for "101"
-Warning--I didn't find a database entry for "73"
-Warning--I didn't find a database entry for "130"
-Warning--I didn't find a database entry for "31"
-Warning--I didn't find a database entry for "44"
-Warning--I didn't find a database entry for "71"
-Warning--I didn't find a database entry for "33"
-Warning--I didn't find a database entry for "123"
-Warning--I didn't find a database entry for "46"
-Warning--I didn't find a database entry for "126"
-Warning--I didn't find a database entry for "136"
-Warning--I didn't find a database entry for "56"
-Warning--I didn't find a database entry for "138"
-Warning--I didn't find a database entry for "134"
-Warning--I didn't find a database entry for "149"
-Warning--I didn't find a database entry for "4"
-Warning--I didn't find a database entry for "140"
-Warning--I didn't find a database entry for "142"
-Warning--I didn't find a database entry for "143"
-Warning--I didn't find a database entry for "144"
-Warning--I didn't find a database entry for "146"
-Warning--I didn't find a database entry for "Boutin-et-al."
-Warning--I didn't find a database entry for "-2014;-Karanasos-et-al."
-Warning--I didn't find a database entry for "-2015;-Verma-et-al."
-Warning--I didn't find a database entry for "-2015;-Gog-et-al."
-Warning--I didn't find a database entry for "-2016;-Mao-et-al."
-Warning--I didn't find a database entry for "-2019;-Ousterhout-et-al."
-Warning--I didn't find a database entry for "-2013b"
-Warning--I didn't find a database entry for "Ousterhout-et-al."
-Warning--I didn't find a database entry for "-2013b;-Verma-et-al."
-Warning--I didn't find a database entry for "-2015"
-Warning--I didn't find a database entry for "Cortez-et-al."
-Warning--I didn't find a database entry for "-2017"
-Warning--I didn't find a database entry for "Verma-et-al."
-Warning--I didn't find a database entry for "-2016;-Boutin-et-al."
-Warning--I didn't find a database entry for "-2014;-Mao-et-al."
-Warning--I didn't find a database entry for "-2019;-Cortez-et-al."
-Warning--I didn't find a database entry for "11"
-Warning--I didn't find a database entry for "23"
-Warning--I didn't find a database entry for "67"
-Warning--I didn't find a database entry for "137"
-Warning--I didn't find a database entry for "thesis"
-You've used 30 entries,
+Warning--empty school in gog2018flexible
+Warning--empty publisher in mao2019learning
+Warning--empty journal in welch1995introduction
+You've used 70 entries,
             2616 wiz_defined-function locations,
-            812 strings with 10650 characters,
-and the built_in function-call counts, 9911 in all, are:
-= -- 1015
-> -- 216
-< -- 9
-+ -- 76
-- -- 46
-* -- 371
-:= -- 1113
-add.period$ -- 96
-call.type$ -- 30
-change.case$ -- 29
+            948 strings with 18951 characters,
+and the built_in function-call counts, 26700 in all, are:
+= -- 2635
+> -- 812
+< -- 35
++ -- 275
+- -- 205
+* -- 1125
+:= -- 3142
+add.period$ -- 222
+call.type$ -- 70
+change.case$ -- 67
 chr.to.int$ -- 0
-cite$ -- 30
-duplicate$ -- 342
-empty$ -- 1259
-format.name$ -- 46
-if$ -- 2967
+cite$ -- 73
+duplicate$ -- 982
+empty$ -- 3134
+format.name$ -- 205
+if$ -- 7731
 int.to.chr$ -- 0
-int.to.str$ -- 30
-missing$ -- 17
-newline$ -- 151
-num.names$ -- 20
-pop$ -- 318
+int.to.str$ -- 70
+missing$ -- 53
+newline$ -- 351
+num.names$ -- 56
+pop$ -- 742
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 835
+skip$ -- 2089
 stack$ -- 0
-substring$ -- 364
-swap$ -- 114
-text.length$ -- 15
+substring$ -- 1201
+swap$ -- 385
+text.length$ -- 41
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 0
-while$ -- 56
-width$ -- 32
-write$ -- 313
-(There were 54 warnings)
+warning$ -- 3
+while$ -- 177
+width$ -- 72
+write$ -- 746
+(There were 4 warnings)
